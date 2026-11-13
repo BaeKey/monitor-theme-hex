@@ -1,3 +1,4 @@
+import {cardInfoFor} from "@/lib/infoVisibility"
 import {useBrushAccessibility} from './useBrushAccessibility'
 import '@/styles/mobile-chart-refinement.css'
 import {LossTrack} from './LossTrack'
@@ -108,8 +109,9 @@ function ChartStatisticsSheet({onClose}:{onClose:()=>void}){
     </MobileSheet>;
 }
 
-export function NodeDetail({ node, authed, probe = "auto", nodes, onSwitch, detailInfoMode, onDetailInfoMode, mobilePreferences=mobileDefaults, onBack }: {
+export function NodeDetail({ node, prefs, authed, probe = "auto", nodes, onSwitch, detailInfoMode, onDetailInfoMode, mobilePreferences=mobileDefaults, onBack }: {
     authed:boolean;
+    prefs:Preferences;
     onBack?:()=>void;
     mobilePreferences?:MobilePreferences;
     detailInfoMode:Preferences['detailInfoMode'];
@@ -369,12 +371,12 @@ export function NodeDetail({ node, authed, probe = "auto", nodes, onSwitch, deta
     };
     const mobileUpdate=loading?tr('正在更新'):failed?tr('更新失败'):updated?new Date(updated).toLocaleTimeString(locale(),{hour:'2-digit',minute:'2-digit',hour12:false}):tr('等待数据');
     return (<div className="node-detail detail-grouped detail-optimized" data-mobile-section={mobileSection}>
-      {mobile?<div className="ma-detail-header"><button className="ma-icon" onClick={onBack??(()=>history.back())} aria-label={tr('返回总览')}><ArrowLeft size={20}/></button><div><NodePicker node={node} nodes={nodes} onSwitch={onSwitch}/></div></div>:<DetailIdentity node={node} nodes={nodes} onSwitch={onSwitch}/>}
-      {mobile&&<DetailRemarks key={`${node.id}:${node.remark}`} text={node.remark??''} mobile/>}
+      {mobile?<div className="ma-detail-header"><button className="ma-icon" onClick={onBack??(()=>history.back())} aria-label={tr('返回总览')}><ArrowLeft size={20}/></button><div><NodePicker node={node} nodes={nodes} onSwitch={onSwitch}/></div></div>:<DetailIdentity info={cardInfoFor(prefs,false)} node={node} nodes={nodes} onSwitch={onSwitch}/>}
+      {mobile&&cardInfoFor(prefs,true).remarks&&<DetailRemarks key={`${node.id}:${node.remark}`} text={node.remark??''} mobile/>}
       {mobile&&<div className="ma-detail-status"><Status node={node}/><small>{node.last_seen>0?tr('上次上报：{0}',new Date(node.last_seen*1000).toLocaleTimeString(locale())):tr('等待首次上报')}</small></div>}
       {mobile&&<nav className="ma-detail-tabs" aria-label={tr('详情分区')}>{([{key:'overview',label:tr('总览')},{key:'resources',label:tr('资源')},{key:'latency',label:tr('网络')},{key:'info',label:tr('资料')}] as const).map(({key,label})=><button key={key} aria-pressed={mobileSection===key} onClick={()=>changeSection(key)}>{label}</button>)}</nav>}
       <div className="detail-workspace">
-      {!mobile?<DetailLiveOverview node={node} preview={resourcePreview} onSelectResource={selectPreview}/>:mobileSection==='overview'?<MobileDetailOverview node={node} authed={authed} totals={mobilePreferences.totals} preview={resourcePreview} onNetwork={()=>changeSection('latency')} onResource={metric=>{setResourceMetric(metric);changeSection('resources');requestAnimationFrame(()=>{document.querySelector<HTMLElement>('.detail-history')?.focus({preventScroll:true});window.scrollTo(0,0)})}}/>:null}
+      {!mobile?<DetailLiveOverview info={cardInfoFor(prefs,false)} node={node} preview={resourcePreview} onSelectResource={selectPreview}/>:mobileSection==='overview'?<MobileDetailOverview info={cardInfoFor(prefs,true)} node={node} authed={authed} totals={mobilePreferences.totals} preview={resourcePreview} onNetwork={()=>changeSection('latency')} onResource={metric=>{setResourceMetric(metric);changeSection('resources');requestAnimationFrame(()=>{document.querySelector<HTMLElement>('.detail-history')?.focus({preventScroll:true});window.scrollTo(0,0)})}}/>:null}
       {(!mobile||mobileSection==='resources'||mobileSection==='latency')&&<section className="detail-history" tabIndex={-1} aria-label={tr("历史图表")}>
        {!mobile&&<h2 className="detail-section-title">{tr('历史分析')}</h2>}
        {mobile&&<div className="ma-chart-heading"><h2>{tr(tab==='latency'?'网络质量':'资源历史')}</h2><small title={updated?new Date(updated).toLocaleString(locale()):undefined} data-failed={!!failed}>{mobileUpdate}</small></div>}
@@ -445,7 +447,7 @@ export function NodeDetail({ node, authed, probe = "auto", nodes, onSwitch, deta
           </div>)) : (data.metrics ?? []).length === 0 ? (<HistoryState message={tr("这段时间没有历史数据")} action={tr("调整时间范围")} onAction={chooseRange}/>) : (<ResourceHistory compact={compact} mobile={mobile} rows={metricRows} node={node} hours={hours} metric={resourceMetric}/>)}
       </div></section>}
 
-      {!mobile&&<DetailAccount node={node} authed={authed}/>}
+      {!mobile&&<DetailAccount info={cardInfoFor(prefs,false)} node={node} authed={authed}/>}
       {(!mobile||mobileSection==='info')&&<DetailFacts node={node} compact={mobile?false:compact} mobile={mobile} mode={detailInfoMode} onMode={onDetailInfoMode}/>}
       </div>
       {chartSheet&&<ChartStatisticsSheet onClose={()=>setChartSheet(null)}/>}

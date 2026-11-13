@@ -1,3 +1,4 @@
+import { withBase, socketURL } from './base.ts'
 import {SpeedBuffer} from './trends.ts'
 import {liveMetrics} from './freshness.ts'
 import { useEffect, useState } from "react"
@@ -83,7 +84,7 @@ export class ApiError extends Error {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(withBase(`/api${path}`), {
     ...init,
     headers: init?.body ? { "content-type": "application/json", ...init?.headers } : init?.headers,
   })
@@ -184,7 +185,7 @@ export function useNodes() {
     const connect = () => {
       if (stopped) return
       openedAt = Date.now(); streamAt = 0
-      try { socket = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/api/ws') }
+      try { socket = new WebSocket(socketURL()) }
       catch { void fetchOnce(); schedule(); return }
       const current = socket
       current.onmessage = event => {

@@ -1,3 +1,4 @@
+import type {CardInfo} from "@/lib/appearance"
 import type {ResourceMetricKey} from './ResourceHistory'
 import type {Node} from '@/lib/api'
 import {liveMetrics,nodeState} from '@/lib/freshness'
@@ -9,8 +10,8 @@ import {SpeedIndicators} from './SpeedIndicators'
 import {tr,locale} from '@/lib/i18n'
 import {Activity,ChevronRight,Cpu,MemoryStick,HardDrive} from 'lucide-react'
 
-export function MobileDetailOverview({node,authed,totals,preview,onNetwork,onResource}:{
- node:Node;authed:boolean;totals:boolean;preview:ResourcePreview;onNetwork:()=>void;onResource:(metric:ResourceMetricKey)=>void
+export function MobileDetailOverview({node,authed,info,totals,preview,onNetwork,onResource}:{
+ node:Node;authed:boolean;info:CardInfo;totals:boolean;preview:ResourcePreview;onNetwork:()=>void;onResource:(metric:ResourceMetricKey)=>void
 }){
  const m=liveMetrics(node)
  const upload=adaptiveRateParts(m?.net_tx??NaN),download=adaptiveRateParts(m?.net_rx??NaN)
@@ -42,7 +43,7 @@ export function MobileDetailOverview({node,authed,totals,preview,onNetwork,onRes
    <section className="ma-panel ma-overview-network">
     <h2>{tr('实时网速')}</h2>
     <button className="ma-speed-history" aria-label={tr('网速历史')} aria-describedby="ma-speed-values" onClick={()=>onResource('network')}><span id="ma-speed-values" className="sr-only">{tr('上行')} {upload.amount} {upload.unit} · {tr('下行')} {download.amount} {download.unit}</span><SpeedIndicators node={node} detail compact sharedEmpty/></button>
-    <DetailConnectionStats node={node}/>
+    <DetailConnectionStats info={info} node={node}/>
     <button className="ma-row" onClick={onNetwork}><span>{tr('网络质量')}</span><ChevronRight size={16}/></button>
    </section>
   </>:<section className="ma-panel ma-unavailable">
@@ -51,6 +52,6 @@ export function MobileDetailOverview({node,authed,totals,preview,onNetwork,onRes
    <p className="ma-muted">{tr('最近上报时间')}<br/>{node.last_seen>0?<time dateTime={new Date(node.last_seen*1000).toISOString()}>{relativeTime(node.last_seen)} · {new Date(node.last_seen*1000).toLocaleString(locale())}</time>:tr('上次上报时间未知')}</p>
    <button className="ma-row" onClick={onNetwork}><span>{tr('查看网络历史')}</span><ChevronRight size={16}/></button>
   </section>}
-  <DetailAccount node={node} authed={authed} mobile/>
+  <DetailAccount info={info} node={node} authed={authed} mobile/>
  </div>
 }

@@ -1,3 +1,4 @@
+import { backgroundURL } from '../lib/base.ts'
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Preferences } from '@/lib/appearance'
@@ -6,14 +7,14 @@ export function useBackground(prefs: Preferences) {
   const [failed, setFailed] = useState('')
   useEffect(() => {
     if (!prefs.backgroundUrl) return
-    const url = prefs.backgroundUrl
+    const url = backgroundURL(prefs.backgroundUrl)
     let active = true
     const img = new Image()
     // Do not send the monitoring page URL to external image hosts.
     img.referrerPolicy = 'no-referrer'
-    const timer = setTimeout(() => { if (active) { setFailed(url); img.onload = null; img.onerror = null } }, 12000)
-    img.onload = () => { clearTimeout(timer); if (active) { setLoaded(url); setFailed('') } }
-    img.onerror = () => { clearTimeout(timer); if (active) setFailed(url) }
+    const timer = setTimeout(() => { if (active) { setFailed(prefs.backgroundUrl); img.onload = null; img.onerror = null } }, 12000)
+    img.onload = () => { clearTimeout(timer); if (active) { setLoaded(prefs.backgroundUrl); setFailed('') } }
+    img.onerror = () => { clearTimeout(timer); if (active) setFailed(prefs.backgroundUrl) }
     img.src = url
     return () => { active = false; clearTimeout(timer); img.onload = null; img.onerror = null }
   }, [prefs.backgroundUrl])
@@ -25,5 +26,5 @@ export function useBackground(prefs: Preferences) {
   return { ready, error: !!prefs.backgroundUrl && failed === prefs.backgroundUrl, style }
 }
 export function Background({ url }: { url: string }) {
-  return <div className="site-background" aria-hidden="true"><img src={url} alt="" referrerPolicy="no-referrer" /><div className="photo-mask" /></div>
+  return <div className="site-background" aria-hidden="true"><img src={backgroundURL(url)} alt="" referrerPolicy="no-referrer" /><div className="photo-mask" /></div>
 }

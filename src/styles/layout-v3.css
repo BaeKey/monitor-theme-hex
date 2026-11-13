@@ -1,7 +1,7 @@
 /* Final layout refinements; shared materials follow palette and appearance preferences. */
 @font-face {
   font-family: "HEX Inter";
-  src: url('/fonts/inter-latin-variable.woff2') format('woff2');
+  src: url('../../public/fonts/inter-latin-variable.woff2') format('woff2');
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
