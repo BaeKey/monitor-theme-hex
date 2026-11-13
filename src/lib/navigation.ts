@@ -1,3 +1,4 @@
+import { withBase } from './base.ts'
 export type HomePage='nodes'|'overview'|'settings'|'map'
 
 export function homePage(url:URL=new URL(location.href)):HomePage{
@@ -5,7 +6,7 @@ export function homePage(url:URL=new URL(location.href)):HomePage{
  return value==='overview'||value==='settings'||value==='map'?value:'nodes'
 }
 
-export function homePath(page:HomePage){return `/?page=${page}`}
+export function homePath(page:HomePage){return withBase(`/?page=${page}`)}
 
 type ReturnContext={page:HomePage;scrollY:number}
 const returnKey='hex-return-context'

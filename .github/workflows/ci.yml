@@ -33,3 +33,13 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Install Chromium for mount-path regression
+        run: npx playwright install --with-deps chromium
+      - name: Root and subpath browser regression
+        env:
+          TEST_BROWSER: chromium
+        run: npm run test:subpath
+      - name: Theme field visibility regression
+        env:
+          TEST_BROWSER: chromium
+        run: npx playwright test tests/info-visibility.spec.ts tests/site-config.spec.ts --workers=1

@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 
 export default defineConfig({
+  base: "./",
   plugins: [react(), tailwindcss()],
   // import.meta.dirname rather than new URL(...).pathname: the latter is
   // URL-encoded, so a checkout under a path containing a space or a non-ASCII

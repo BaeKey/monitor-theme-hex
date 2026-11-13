@@ -1,3 +1,4 @@
+import type {CardInfo} from "@/lib/appearance"
 import type {Node} from '@/lib/api'
 import {tr} from '@/lib/i18n'
 import {bytes,daysUntil,money,CYCLES} from '@/lib/format'
@@ -48,11 +49,15 @@ export function ExpiryCard({node,mobile=false}:{node:Node;mobile?:boolean}){
   {mobile?<p className="account-note">{days===null?status:days<=0?`${date} · ${status}`:tr('{0} 到期',date)}</p>:days===null||days<=0?<p className={`account-note${days!==null?' account-expiry-status':''}`}>{status}</p>:null}
  </section>
 }
-export function DetailAccount({node,authed,mobile=false}:{node:Node;authed:boolean;mobile?:boolean}){
+export function DetailAccount({node,authed,info,mobile=false}:{node:Node;authed:boolean;info:CardInfo;mobile?:boolean}){
+  const showPrice=authed&&info.price
+  if(!info.traffic&&!info.expiry&&!showPrice)return null
   return <section id="detail-account" tabIndex={-1} className={`detail-account${mobile?' ma-billing-panel':''}`} aria-label={tr('流量与账期')}>
    <h2 className="detail-section-title">{tr('流量与账期')}</h2>
-  <div className="overview-account" data-price-visible={authed} id={mobile?'ma-billing-details':undefined}>
-   <TrafficUsageCard node={node}/><CostCard node={node} authed={authed}/><ExpiryCard node={node} mobile={mobile}/>
+  <div className="overview-account" data-price-visible={showPrice} id={mobile?'ma-billing-details':undefined}>
+   {info.traffic&&<TrafficUsageCard node={node}/>}
+   {showPrice&&<CostCard node={node} authed={authed}/>}
+   {info.expiry&&<ExpiryCard node={node} mobile={mobile}/>}
   </div>
  </section>
 }

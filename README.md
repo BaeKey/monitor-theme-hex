@@ -100,3 +100,28 @@ npm run dev
 HEX 采用 MIT 许可。基础接口与部分组件源自 monitor-theme-default，部分视觉和地图资源参考 Komari Next。来源与第三方声明见 [NOTICE](NOTICE.md)、[LICENSE](LICENSE) 和 [LICENSE.komari-next](LICENSE.komari-next)。
 
 Three.js 的许可见 [LICENSE.three](LICENSE.three)。可复用地图组件、数据单位、交互与性能边界见 [Three.js 地图接入说明](maintenance/THREE-WORLD-MAP.md)。
+
+## 子路径部署
+
+同一份主题构建同时支持 `/`、`/monitor/`、`/a/b/` 等路径，无需重新设置 Vite base。
+使用支持注入 `<base href="/实际前缀/">` 的 hub（如 BaeKey/monitor 的子路径版本）：
+
+```sh
+monitor-hub --site https://example.com/monitor
+```
+
+反向代理必须去掉 `/monitor` 前缀后再转发，且将 `/monitor` 重定向至 `/monitor/`。
+API、WebSocket、详情导航、后台链接和内置静态资源均跟随注入的前缀。
+旧版根路径 hub 与 Vite 开发环境无需注入 `<base>`，仍按根路径运行。
+不能仅靠当前浏览器路径推断部署前缀，因为 `/node/1` 是详情路由；
+其他静态宿主也必须在 HTML head 最前面注入带末尾斜杠的 `<base>`。
+自定义背景的 `/images/...` 仍表示域名根路径，外部 HTTP(S) 地址保持原样，仅内置山峦背景跟随主题前缀。
+
+验证命令：`npm run build && TEST_BROWSER=chromium npm run test:subpath`，覆盖根路径、多层和 URL 编码前缀。
+
+## 信息显示开关
+
+主题后台的通用卡片信息设置同时控制列表、表格、节点详情与相关到期/流量提醒。
+手机选择「跟随通用设置」时使用通用开关，选择「单独设置」时使用手机开关。
+关闭价格也会隐藏费用与付费周期；关闭全部流量、费用、到期信息会移除整个详情账期区。
+配置保存后刷新前台页面生效。这些开关仅控制前端展示，不是后端字段访问权限。

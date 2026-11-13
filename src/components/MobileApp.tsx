@@ -1,6 +1,8 @@
+import {cardInfoFor} from "@/lib/infoVisibility"
+import { withBase, stripBase } from '../lib/base.ts'
 import {MetricReading} from './MetricReading'
 import {HexMark} from './HexMark'
-import {expiring,quotaWarning} from '@/lib/billingReminders'
+import {expiring as isExpiring,quotaWarning as isQuotaWarning} from '@/lib/billingReminders'
 import {useCallback,useEffect,useLayoutEffect,useRef,useState,useSyncExternalStore,type Dispatch,type SetStateAction} from 'react'
 import {ArrowDown,ArrowUp,BarChart3,ChevronRight,LayoutGrid,Search,Server,Settings2,SlidersHorizontal,X} from 'lucide-react'
 import type {Node} from '@/lib/api'
@@ -36,7 +38,7 @@ type Filter={status:string;region:string;group:string;sort:string}
 const empty:Filter={status:'all',region:'all',group:'all',sort:'default'}
 function readMobileBrowse(){try{const value=JSON.parse(sessionStorage.getItem('hex-mobile-browse')||'{}');return {query:typeof value.query==='string'?value.query:'',filter:{...empty,...value.filter}}}catch{return {query:'',filter:empty}}}
 const regionLabel=(code:string)=>code===UNKNOWN_REGION?tr('未知地区'):countryName(code)
-function matches(n:Node,f:Filter,query:string){return (f.status==='all'||f.status==='online'&&n.online||f.status==='offline'&&!n.online||f.status==='high'&&(liveMetrics(n)?.cpu??0)>=85||f.status==='expiry'&&expiring(n)||f.status==='quota'&&quotaWarning(n))&&(f.region==='all'||regionKey(n.country)===f.region)&&(f.group==='all'||(n.group??'')===f.group.slice(1))&&`${n.name} ${n.group??''} ${n.os} ${regionLabel(regionKey(n.country))}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())}
+function matches(n:Node,f:Filter,query:string){return (f.status==='all'||f.status==='online'&&n.online||f.status==='offline'&&!n.online||f.status==='high'&&(liveMetrics(n)?.cpu??0)>=85||f.status==='expiry'&&isExpiring(n)||f.status==='quota'&&isQuotaWarning(n))&&(f.region==='all'||regionKey(n.country)===f.region)&&(f.group==='all'||(n.group??'')===f.group.slice(1))&&`${n.name} ${n.group??''} ${n.os} ${regionLabel(regionKey(n.country))}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())}
 function Meter({label,value}:{label:string;value:number|null}){return <div className="ma-meter"><div><span>{label}</span><b>{value===null?'—':value.toFixed(1)}{value!==null&&<small>%</small>}</b></div><div className="ma-track" data-hot={value!==null&&value>=85}><i style={{width:`${Math.max(0,Math.min(100,value??0))}%`}}/></div></div>}
 function MobileFactValue({value,offline}:{value:string;offline:boolean}){
  const [slot,setSlot]=useState(value)
@@ -57,7 +59,7 @@ function CompactNode({node,prefs,authed,detailed,onOpen}:{node:Node;prefs:Prefer
  const reportHint=reported&&Number.isFinite(reported.getTime())?`${tr('最近上报时间')}：${relativeTime(node.last_seen)} · ${reported.toLocaleString(locale())}`:tr('上次上报时间未知')
  const recent=!!selected&&isRecentPingSample(selected.latest.ts)&&!snapshot?.failed
  const routeCaption=selected?`${selected.name}${snapshot?.failed?` · ${tr('更新失败 · 上次数据')}`:''}`:snapshot?.failed?tr('暂不可用 · 自动重试'):snapshot?.data?tr('无该线路记录'):tr('正在读取探测记录…')
- const info=prefs.mobileInfoMode==='custom'?(prefs.mobileCardInfo??prefs.cardInfo):prefs.cardInfo
+ const info=cardInfoFor(prefs,true)
  const notes=(info.remarks?node.remark??'':'').split(/[;；]/).map(text=>text.trim()).filter(Boolean)
  const showPrice=authed&&info.price&&node.price>0
  return <div ref={ref} className="ma-node" data-compact={!detailed} data-state={state}><button data-node-id={node.id} title={offline?reportHint:undefined} onClick={()=>onOpen(node.id)} aria-label={tr('查看 {0}',node.name)}>
@@ -82,11 +84,14 @@ export function MobileApp({active,page,onNavigate,nodes,prefs,onPrefs,mobile,onM
  const [query,setQuery]=useState(()=>readMobileBrowse().query),[filter,setFilter]=useState<Filter>(()=>readMobileBrowse().filter),[draft,setDraft]=useState<Filter>(empty)
  const [sheet,setSheet]=useState<'filters'|'routes'|'records'|'updates'|null>(null),[routeQuery,setRouteQuery]=useState(''),[undo,setUndo]=useState<MobilePreferences|null>(null)
  const versionState=useMobileVersions(authed&&active&&page==='settings')
+ const info=cardInfoFor(prefs,true)
+ const expiring=(n:Node)=>info.expiry&&isExpiring(n)
+ const quotaWarning=(n:Node)=>info.traffic&&isQuotaWarning(n)
  const updates=authed&&hasMobileUpdates(versionState.versions,nodes??[])
  const scroll=useRef<Record<Page,number>>({nodes:0,overview:0,settings:0,map:0})
  const previousPage=useRef(page),restoringScroll=useRef(false)
  useEffect(()=>{try{sessionStorage.setItem('hex-mobile-browse',JSON.stringify({query,filter}))}catch{/* Optional storage. */}},[query,filter])
- useEffect(()=>{if(!active)return;const record=()=>{if(!restoringScroll.current&&location.pathname==='/'&&homePage()===page)scroll.current[page]=window.scrollY};const remember=()=>{scroll.current[page]=window.scrollY};addEventListener('scroll',record,{passive:true});addEventListener('hex:before-history-navigation',remember);return()=>{removeEventListener('scroll',record);removeEventListener('hex:before-history-navigation',remember)}},[active,page])
+ useEffect(()=>{if(!active)return;const record=()=>{if(!restoringScroll.current&&stripBase(location.pathname)==='/'&&homePage()===page)scroll.current[page]=window.scrollY};const remember=()=>{scroll.current[page]=window.scrollY};addEventListener('scroll',record,{passive:true});addEventListener('hex:before-history-navigation',remember);return()=>{removeEventListener('scroll',record);removeEventListener('hex:before-history-navigation',remember)}},[active,page])
  useLayoutEffect(()=>{
   if(!active||previousPage.current===page)return
   previousPage.current=page
@@ -111,7 +116,7 @@ export function MobileApp({active,page,onNavigate,nodes,prefs,onPrefs,mobile,onM
  if(filter.sort==='latency'){const value=(n:Node)=>{const snapshot=getPing(n.id);if(!snapshot?.data||snapshot.failed)return Infinity;const stats=summarizePing(snapshot.data),probe=resolveProbe(n.id,prefs.probe),s=selectPing(stats,probe);return s&&isRecentPingSample(s.latest.ts)&&s.latest.latency!==null?s.latest.latency:Infinity};shown=shown.sort((a,b)=>value(a)-value(b))}
  const navigate=(next:Page)=>{scroll.current[page]=window.scrollY;onNavigate(next)}
  const filterStatus=(status:string)=>{setFilter(f=>({...f,status:f.status===status?'all':status}));if(page!=='nodes')navigate('nodes')}
- const statuses=[['all',tr('全部')],['online',tr('在线')],['offline',tr('离线')],['high',tr('高负载')],['expiry',tr('到期提醒')],['quota',tr('流量提醒')]]
+ const statuses=[['all',tr('全部')],['online',tr('在线')],['offline',tr('离线')],['high',tr('高负载')],['expiry',tr('到期提醒')],['quota',tr('流量提醒')]].filter(([key])=>key!=='expiry'||info.expiry).filter(([key])=>key!=='quota'||info.traffic)
  const sorts=[['default',tr('后台默认')],['cpu',tr('负载优先')],['latency',tr('所选线路延迟')],['name',tr('名称')]]
  const activeFilters=([{key:'status',label:statuses.find(s=>s[0]===filter.status)?.[1]},{key:'region',label:regionLabel(filter.region)},{key:'group',label:filter.group.slice(1)||tr('未分组')},{key:'sort',label:sorts.find(s=>s[0]===filter.sort)?.[1]}] as const).filter(f=>filter[f.key]!==empty[f.key])
  const routeOptions=[['auto',tr('自动选择近期采样线路')],...[...probes].map(([id,name])=>[String(id),name])].filter(([,name])=>name.toLocaleLowerCase().includes(routeQuery.trim().toLocaleLowerCase()))
@@ -130,12 +135,12 @@ export function MobileApp({active,page,onNavigate,nodes,prefs,onPrefs,mobile,onM
    {groups.length>0&&<div className="ma-business-tabs" role="group" aria-label={tr('节点分组')}>{[['all',tr('全部')],...groups.map(g=>['='+g,g]),...(sorted.some(n=>!n.group)?[['=',tr('未分组')]]:[])].map(([key,label])=><button key={key} aria-pressed={filter.group===key} onClick={()=>setFilter(f=>({...f,group:key}))}>{label}<small>{key==='all'?sorted.length:sorted.filter(n=>(n.group??'')===key.slice(1)).length}</small></button>)}</div>}
    {activeFilters.length>0&&<div className="ma-filter-tags">{activeFilters.map(f=><button key={f.key} aria-label={tr('移除筛选：{0}',f.label??'')} onClick={()=>setFilter(p=>({...p,[f.key]:empty[f.key]}))}>{f.label}<X size={13}/></button>)}<button onClick={()=>{setFilter(empty);setQuery('')}}>{tr('清除全部条件')}</button></div>}
    <div className="ma-heading"><h2>{names.length?names.join(' · '):tr('节点')}</h2><small>{tr('匹配 {0} 个节点',shown.length)}</small></div>
-   <div id="mobile-node-results">{shown.map(node=><CompactNode key={node.id} node={node} prefs={prefs} authed={authed} detailed={mobile.detailed} onOpen={onOpen}/>)}{shown.length===0&&<div className="ma-empty"><p>{sorted.length?tr('没有符合条件的节点'):tr('还没有节点')}</p>{sorted.length>0?<>{query&&<button onClick={()=>setQuery('')}>{tr('仅清除搜索')}</button>}<button onClick={()=>{setFilter(empty);setQuery('')}}>{tr('清除全部条件')}</button></>:authed?<a href="/admin/">{tr('前往后台添加节点')}</a>:tr('请联系管理员添加节点。')}</div>}</div>
+   <div id="mobile-node-results">{shown.map(node=><CompactNode key={node.id} node={node} prefs={prefs} authed={authed} detailed={mobile.detailed} onOpen={onOpen}/>)}{shown.length===0&&<div className="ma-empty"><p>{sorted.length?tr('没有符合条件的节点'):tr('还没有节点')}</p>{sorted.length>0?<>{query&&<button onClick={()=>setQuery('')}>{tr('仅清除搜索')}</button>}<button onClick={()=>{setFilter(empty);setQuery('')}}>{tr('清除全部条件')}</button></>:authed?<a href={withBase("/admin/")}>{tr('前往后台添加节点')}</a>:tr('请联系管理员添加节点。')}</div>}</div>
   </>:page==='overview'?<>
    <section className="ma-hero"><div>{tr('服务器运行概况')}<Server size={19}/></div><strong>{online.length}<small>/ {sorted.length} {tr('在线')}</small></strong>{sorted.length>0&&needsAttention.length===0&&reminders.length===0&&<p className="ma-health-summary">{tr('当前节点运行正常，暂无到期或流量提醒。')}</p>}{sorted.length===0&&<p className="ma-health-summary-empty">{tr('还没有节点')}</p>}<div className="ma-health-track"><i style={{width:`${sorted.length?online.length/sorted.length*100:0}%`}}/></div></section>
    {needsAttention.length>0&&<><div className="ma-heading"><h2>{tr('需要关注')}</h2></div><section className="ma-panel ma-rows">{needsAttention.map(n=><button className="ma-row" key={n.id} onClick={()=>onOpen(n.id)}><span>{n.name}<small>{!n.online?tr('离线'):nodeState(n)==='stale'?tr('数据已过期'):nodeState(n)==='missing'?tr('等待数据'):tr('高负载')}</small></span><ChevronRight size={17}/></button>)}</section></>}
    {(prefs.modules.traffic||prefs.modules.speed)&&<div className="ma-stat-grid">{prefs.modules.traffic&&<section className="ma-panel"><small>{tr('今日流量')}</small><strong><MetricReading value={bytes(total('day_rx')+total('day_tx'))}/></strong><p>↑ {bytes(total('day_tx'))}　↓ {bytes(total('day_rx'))}</p></section>}{prefs.modules.speed&&<section className="ma-panel"><small>{tr('实时网速')}</small><strong><MetricReading value={fresh.length?adaptiveRate(net('net_rx')+net('net_tx')):'—'}/></strong><p>{fresh.length<online.length?tr('{0} 个节点暂无实时数据',online.length-fresh.length):tr('当前数据')}</p></section>}</div>}
-   {reminders.length>0&&<><div className="ma-heading"><h2>{tr('到期与用量')}</h2></div><div className="ma-reminder-shortcuts">{[['expiry',tr('到期提醒'),sorted.filter(expiring).length],['quota',tr('流量提醒'),sorted.filter(quotaWarning).length]].map(([key,label,count])=><button key={key} onClick={()=>{setFilter({...empty,status:String(key)});setQuery('');navigate('nodes')}}>{label} <b>{count}</b><ChevronRight size={14}/></button>)}</div>
+   {reminders.length>0&&<><div className="ma-heading"><h2>{tr('到期与用量')}</h2></div><div className="ma-reminder-shortcuts">{[['expiry',tr('到期提醒'),sorted.filter(expiring).length],['quota',tr('流量提醒'),sorted.filter(quotaWarning).length]].filter(([key])=>key!=='expiry'||info.expiry).filter(([key])=>key!=='quota'||info.traffic).map(([key,label,count])=><button key={key} onClick={()=>{setFilter({...empty,status:String(key)});setQuery('');navigate('nodes')}}>{label} <b>{count}</b><ChevronRight size={14}/></button>)}</div>
    <section className="ma-panel ma-rows">{reminders.map(n=><button className="ma-row" key={n.id} onClick={()=>onOpen(n.id)}><span>{n.name}<small>{expiring(n)?((daysUntil(n.expires_at)??0)<0?tr('已到期'):tr('剩余 {0} 天',daysUntil(n.expires_at)!)):''}{expiring(n)&&quotaWarning(n)?' · ':''}{quotaWarning(n)?tr('流量已用 {0}%',Math.round(trafficUsage(n).value/n.traffic_limit*100)):''}</small></span><ChevronRight size={17}/></button>)}</section></>}
    <div className="ma-heading ma-regions-heading"><div><h2>{tr('地区分布')}</h2><small>· {regions.length}</small></div>{prefs.modules.map?<button className="mm-entry" onClick={()=>navigate('map')}>{tr('查看地图')}<ChevronRight size={15}/></button>:null}</div><section className="ma-panel ma-rows">{regions.map(r=><button className="ma-row" key={r.code} onClick={()=>{setFilter({...empty,region:r.code});setQuery('');navigate('nodes')}}><span className="ma-region">{r.code!==UNKNOWN_REGION&&<Flag code={r.code}/>} {regionLabel(r.code)}</span><small>{sorted.filter(n=>regionKey(n.country)===r.code&&n.online).length}/{r.total} {tr('在线')} <ChevronRight size={15}/></small></button>)}</section>
    {prefs.modules.busiest&&(loadAlerts.events.length>0?<><div className="ma-heading"><h2>{tr('本机负载记录')}</h2></div><LoadAlertTile {...loadAlerts} available={sorted.map(n=>n.id)} onOpen={onAlert}/><p className="ma-footnote">{tr('仅记录当前浏览器打开期间观测到的高负载。')}</p></>:<button className="ma-records-entry ma-row" onClick={()=>setSheet('records')}><span>{tr('本机负载记录')}<small>{tr('仅记录此浏览器的观测')}</small></span><small>{tr('暂无高负载记录')}<ChevronRight size={16}/></small></button>)}
@@ -150,7 +155,7 @@ export function MobileApp({active,page,onNavigate,nodes,prefs,onPrefs,mobile,onM
     {prefs.modules.busiest&&<button className="ma-row" onClick={()=>setSheet('records')}><span>{tr('本机负载记录')}<small>{tr('仅记录此浏览器的观测')}</small></span><small>{loadAlerts.events.length}<ChevronRight size={16}/></small></button>}
    </section><div className="ma-heading"><h2>{tr('应用')}</h2></div><section className="ma-panel ma-rows">
     <label className="ma-row"><span>Language / 语言</span><select aria-label="Language / 语言" value={getLanguage()} onChange={e=>setLanguage(e.target.value as 'zh'|'en')}><option value="zh">简体中文</option><option value="en">English</option></select></label>
-    <a className="ma-row" href="/admin/"><span>{authed?tr('进入后台'):tr('登录')}</span><ChevronRight size={16}/></a>
+    <a className="ma-row" href={withBase("/admin/")}><span>{authed?tr('进入后台'):tr('登录')}</span><ChevronRight size={16}/></a>
     {authed&&<button className="ma-row" onClick={()=>setSheet('updates')}><span>{tr('版本与更新')}</span><small>{updates?<><i className="ma-update-dot"/>{tr('有新版本')}</>:versionState.busy?tr('正在检查…'):versionState.error?tr('检查未完成'):tr('查看版本')}<ChevronRight size={16}/></small></button>}
     <button className="ma-row" onClick={()=>{setUndo({...mobile});onMobile({...mobileDefaults})}}><span>{tr('恢复手机显示默认设置')}<small>{tr('重置手机显示偏好')}</small></span><ChevronRight size={16}/></button>
    </section>
