@@ -48,6 +48,7 @@ test('mounted assets, live API, detail history and admin navigation',async({page
  await page.goto(baseURL!+'?page=settings')
  await expect(page.locator('a[href="'+mount+'/admin/"]').first()).toBeVisible()
  expect(requests.filter(u=>new URL(u).origin===new URL(baseURL!).origin).every(u=>new URL(u).pathname.startsWith(mount+'/'))).toBeTruthy()
+ expect(requests.some(u=>new URL(u).pathname.endsWith('/api/version'))).toBe(false)
  expect(failed).toEqual([])
  expect(errors).toEqual([])
 })

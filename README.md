@@ -2,21 +2,21 @@
 
 为 **monitor-probe** 制作的监控主题，支持桌面卡片与表格、手机端布局、深浅色和中英文。首页汇总节点状态与网络情况，详情页提供资源历史、线路延迟、流量和设备资料。
 
-[下载稳定版](https://github.com/8bitNull/monitor-theme-hex/releases/latest) · [使用指南](maintenance/USER-GUIDE.md) · [开发说明](maintenance/DEVELOPMENT.md) · [更新记录](CHANGELOG.md)
+[下载稳定版](https://github.com/BaeKey/monitor-theme-hex/releases/latest) · [使用指南](maintenance/USER-GUIDE.md) · [开发说明](maintenance/DEVELOPMENT.md) · [更新记录](CHANGELOG.md)
 
 ![HEX 主题预览](preview.png)
 
 ## 安装与升级
 
-1. 准备好正在运行的 monitor-probe，从 [GitHub Releases](https://github.com/8bitNull/monitor-theme-hex/releases/latest) 下载 `theme.tar.gz`。
+1. 准备好正在运行的 monitor-probe，从 [GitHub Releases](https://github.com/BaeKey/monitor-theme-hex/releases/latest) 下载 `theme.tar.gz`。
 2. 在后台的主题管理中上传安装包。
 3. 选择 **HEX** 启用；升级时上传新版安装包覆盖即可。
 
 主题短名为 `hex`。GitHub 自动生成的源码 ZIP 不能用于后台安装。发布页提供 `theme.tar.gz.sha256`，可用于核对下载文件。
 
-当前稳定版为 **v1.2.7**。`main` 维护稳定版，开发在临时功能分支进行，通过 PR 和 CI 合并后删除分支；开发分支中的版本字段不代表正式发布。
+当前稳定版为 **v1.2.8**。`main` 维护稳定版，开发在临时功能分支进行，通过 PR 和 CI 合并后删除分支；开发分支中的版本字段不代表正式发布。
 
-v1.2.7 修复首页延迟在手动刷新后被额外推迟自动更新的问题，并在浏览器重新获得焦点、网络恢复或页面恢复时自动补读过期数据。保留 v1.2.6 的采样年龄、准确时间、统一自动选线、手动指定线路与真实超时状态；HEX 宣传封面保持不变。
+v1.2.8 统一发布子路径部署、信息显示开关修复，以及检测更新清理。手机设置不再请求版本接口或显示升级入口；主题当前版本仍可查看，HEX 宣传封面保持不变。
 
 ## 主要功能
 
@@ -25,7 +25,7 @@ v1.2.7 修复首页延迟在手动刷新后被额外推迟自动更新的问题�
 - **资源与网络**：CPU、内存、硬盘、实时网速，以及资源历史、线路延迟和丢包记录。
 - **手机端**：节点、概览和设置入口，详情使用总览、资源、网络、资料四个分区。
 - **配置与偏好**：后台统一配置站点外观，访客可在浏览器保存明暗、语言和显示偏好。
-- **状态提醒**：提供高负载、离线、临近到期和流量额度筛选，手机首页隐藏警示文字；管理员可查看 Hub 与 Agent 版本信息。
+- **状态提醒**：提供高负载、离线、临近到期和流量额度筛选，手机首页隐藏警示文字；不进行 Hub 或 Agent 版本查询。
 
 数据含义、配置作用域、手机桌面快捷方式和具体操作见 [使用指南](maintenance/USER-GUIDE.md)。
 

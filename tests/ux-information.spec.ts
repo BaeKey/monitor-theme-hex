@@ -61,23 +61,6 @@ test('capacity preference hides only memory and disk totals; offline shows relat
  await expect(page.locator('.ma-detail-overview .ma-muted time')).toHaveAttribute('datetime',/T/)
 })
 
-test('version summary distinguishes missing and invalid builds and links identify their destination',async({page})=>{
- await page.setViewportSize({width:390,height:844})
- await page.route('**/api/me',r=>r.fulfill({json:{authed:true,github:false,site_name:'Test',public_page:true}}))
- await page.route('**/api/nodes',r=>r.fulfill({json:{nodes:nodes().slice(0,3).map((n,i)=>({...n,agent_version:['1.0.0','','demo'][i]}))}}))
- await page.route('**/api/version',r=>r.fulfill({json:{hub:'demo',hub_latest:'1.2.0',agent_latest:'1.2.0',notice:true}}))
- await page.goto('/')
- await page.getByRole('navigation',{name:'主导航'}).getByRole('button',{name:'设置',exact:true}).click()
- await page.getByRole('button',{name:/版本与更新/}).click()
- const dialog=page.getByRole('dialog')
- await expect(dialog).toContainText('1 个节点可更新')
- await expect(dialog).toContainText('1 个节点尚未上报版本')
- await expect(dialog).toContainText('1 个节点版本无法比较')
- await expect(dialog).toContainText('版本无法比较')
- await expect(dialog.getByRole('link',{name:/Hub.*发布说明/})).toHaveAttribute('href',/monitor\/releases/)
- await expect(dialog.getByRole('link',{name:/Agent.*发布说明/})).toHaveAttribute('href',/agent\/releases/)
-})
-
 test('desktop card and detail share adaptive live rates while table stays in Mbps',async({page})=>{
  const high={...nodes()[0],metrics:{...nodes()[0].metrics!,net_rx:125_000_000,net_tx:0}}
  await page.route('**/api/nodes',r=>r.fulfill({json:{nodes:[high]}}))
