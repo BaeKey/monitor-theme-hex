@@ -30,7 +30,6 @@ try {
  const mobile=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce',isMobile:true,hasTouch:true})
  await mobile.route('**/api/nodes/*/metrics?*',route=>route.fulfill({json:metrics()}))
  await mobile.route('**/api/me',route=>route.fulfill({json:{authed:true,github:false,site_name:'HEX · 演示',public_page:true}}))
- await mobile.route('**/api/version',route=>route.fulfill({json:{hub:'1.0.0',hub_latest:'1.1.0',agent_latest:'1.1.0',notice:true}}))
  await mobile.route('**/api/nodes',route=>route.fulfill({json:{nodes:nodes().map((node,index)=>({...node,expires_at:'2027-12-31',remark:index===0?'主力节点;稳定运行':''}))}}))
  await mobile.goto(base)
  await mobile.locator('.ma-node').first().waitFor()

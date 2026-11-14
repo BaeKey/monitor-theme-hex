@@ -25,7 +25,6 @@ import {Status} from './NodeIdentity'
 import {RemarkTags} from './RemarkTags'
 import {LoadAlertTile,LoadRecords} from './LoadAlertTile'
 import {MobileSheet} from './ui/mobile-sheet'
-import {MobileUpdates,useMobileVersions,hasMobileUpdates} from './MobileUpdates'
 import '@/styles/mobile-refinement.css'
 import type {LoadAlert} from '@/lib/loadAlerts'
 import {homePage,type HomePage} from '@/lib/navigation'
@@ -82,12 +81,10 @@ export function MobileApp({active,page,onNavigate,nodes,prefs,onPrefs,mobile,onM
  const mapCamera=useCallback((camera:MapCamera|null)=>setMapState(s=>({...s,camera})),[])
  useEffect(()=>writeMapState(mapState),[mapState])
  const [query,setQuery]=useState(()=>readMobileBrowse().query),[filter,setFilter]=useState<Filter>(()=>readMobileBrowse().filter),[draft,setDraft]=useState<Filter>(empty)
- const [sheet,setSheet]=useState<'filters'|'routes'|'records'|'updates'|null>(null),[routeQuery,setRouteQuery]=useState(''),[undo,setUndo]=useState<MobilePreferences|null>(null)
- const versionState=useMobileVersions(authed&&active&&page==='settings')
+ const [sheet,setSheet]=useState<'filters'|'routes'|'records'|null>(null),[routeQuery,setRouteQuery]=useState(''),[undo,setUndo]=useState<MobilePreferences|null>(null)
  const info=cardInfoFor(prefs,true)
  const expiring=(n:Node)=>info.expiry&&isExpiring(n)
  const quotaWarning=(n:Node)=>info.traffic&&isQuotaWarning(n)
- const updates=authed&&hasMobileUpdates(versionState.versions,nodes??[])
  const scroll=useRef<Record<Page,number>>({nodes:0,overview:0,settings:0,map:0})
  const previousPage=useRef(page),restoringScroll=useRef(false)
  useEffect(()=>{try{sessionStorage.setItem('hex-mobile-browse',JSON.stringify({query,filter}))}catch{/* Optional storage. */}},[query,filter])
@@ -156,15 +153,13 @@ export function MobileApp({active,page,onNavigate,nodes,prefs,onPrefs,mobile,onM
    </section><div className="ma-heading"><h2>{tr('应用')}</h2></div><section className="ma-panel ma-rows">
     <label className="ma-row"><span>Language / 语言</span><select aria-label="Language / 语言" value={getLanguage()} onChange={e=>setLanguage(e.target.value as 'zh'|'en')}><option value="zh">简体中文</option><option value="en">English</option></select></label>
     <a className="ma-row" href={withBase("/admin/")}><span>{authed?tr('进入后台'):tr('登录')}</span><ChevronRight size={16}/></a>
-    {authed&&<button className="ma-row" onClick={()=>setSheet('updates')}><span>{tr('版本与更新')}</span><small>{updates?<><i className="ma-update-dot"/>{tr('有新版本')}</>:versionState.busy?tr('正在检查…'):versionState.error?tr('检查未完成'):tr('查看版本')}<ChevronRight size={16}/></small></button>}
     <button className="ma-row" onClick={()=>{setUndo({...mobile});onMobile({...mobileDefaults})}}><span>{tr('恢复手机显示默认设置')}<small>{tr('重置手机显示偏好')}</small></span><ChevronRight size={16}/></button>
    </section>
    <div className="ma-app-info"><strong>HEX · v{manifest.version}</strong><p>{tr('让服务器状态一目了然')}</p><a href={manifest.url} target="_blank" rel="noreferrer">{tr('项目主页')}</a></div>
   </>}
   {undo&&<div className="ma-undo" role="status"><span>{tr('已恢复手机显示默认设置')}</span><button onClick={()=>{onMobile(undo);setUndo(null)}}>{tr('撤销')}</button><button aria-label={tr('关闭')} onClick={()=>setUndo(null)}><X size={16}/></button></div>}
   {page!=='map'&&<><p className="ma-footnote">{page==='settings'?'Powered by monitor-probe':`${manifest.name} · ${manifest.version}`}</p>
-  <nav className="ma-nav" aria-label={tr('主导航')}>{([{key:'nodes',label:tr('节点'),Icon:LayoutGrid},{key:'overview',label:tr('概览'),Icon:BarChart3},{key:'settings',label:tr('设置'),Icon:Settings2}] as const).map(({key,label,Icon})=><button key={key} aria-current={page===key?'page':undefined} onClick={()=>navigate(key)}><span><Icon size={21}/>{key==='settings'&&updates&&<i className="ma-update-dot" title={tr('有新版本')}/>}</span>{label}</button>)}</nav></>}
-  {active&&authed&&sheet==='updates'&&<MobileUpdates state={versionState} nodes={sorted} onClose={()=>setSheet(null)}/>}
+  <nav className="ma-nav" aria-label={tr('主导航')}>{([{key:'nodes',label:tr('节点'),Icon:LayoutGrid},{key:'overview',label:tr('概览'),Icon:BarChart3},{key:'settings',label:tr('设置'),Icon:Settings2}] as const).map(({key,label,Icon})=><button key={key} aria-current={page===key?'page':undefined} onClick={()=>navigate(key)}><span><Icon size={21}/></span>{label}</button>)}</nav></>}
   {sheet==='records'&&<LoadRecords {...loadAlerts} available={sorted.map(n=>n.id)} onOpen={onAlert} onClose={()=>setSheet(null)}/>}
   {sheet==='filters'&&<MobileSheet title={tr('筛选节点')} onClose={()=>setSheet(null)} footer={<><button onClick={()=>setDraft(empty)}>{tr('重置')}</button><button onClick={()=>{setFilter(draft);setSheet(null);window.scrollTo(0,0)}}>{tr('显示 {0} 个节点',sorted.filter(n=>matches(n,draft,query)).length)}</button></>}>
    {([{key:'status',label:tr('状态'),options:statuses},{key:'region',label:tr('地区'),options:[['all',tr('所有地区')],...regions.map(r=>[r.code,regionLabel(r.code)])]},{key:'group',label:tr('节点分组'),options:[['all',tr('全部分组')],...groups.map(g=>['='+g,g]),...(sorted.some(n=>!n.group)?[['=',tr('未分组')]]:[])]},{key:'sort',label:tr('排序'),options:sorts}] as const).map(section=><section key={section.key}><h3>{section.label}</h3><div className="ma-chips">{section.options.map(([key,label])=><button key={key} aria-pressed={draft[section.key]===key} onClick={()=>setDraft(d=>({...d,[section.key]:key}))}>{label}</button>)}</div></section>)}

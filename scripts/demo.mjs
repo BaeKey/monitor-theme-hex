@@ -16,7 +16,6 @@ http.createServer(async (req, res) => {
   url.pathname=url.pathname.slice(prefix.length)||'/'
   const reply = value => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(value)) }
   if (url.pathname === '/api/me') return reply({ authed: adminDemo, github: false, site_name: adminDemo?'HEX · 管理员演示':'HEX · 演示', public_page: true })
-  if (url.pathname === '/api/version' && adminDemo) return reply({hub:'1.0.0',hub_latest:'1.1.0',agent_latest:'1.1.0',notice:true})
   if (url.pathname === '/api/nodes') return reply({ nodes: process.env.THEME_DEMO_REFINED==='1'?refinedNodes():nodes().map((node, i) => process.env.THEME_DEMO_GROUPS === '1' ? { ...node, group: ['网站', '网站', '流量', '流量', '', ''][i] } : node) })
   if (/^\/api\/nodes\/\d+\/metrics$/.test(url.pathname)) return reply(process.env.THEME_DEMO_REFINED==='1'?refinedMetrics():metrics())
   if (url.pathname === '/api/themes/hex/config') return reply({})
