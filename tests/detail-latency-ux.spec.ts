@@ -20,11 +20,11 @@ test('selected lines stay identifiable and node switching starts with its own ro
  expect(overflow.scrollWidth,JSON.stringify(overflow)).toBeLessThanOrEqual(overflow.viewport)
  await page.getByRole('button',{name:'切换节点'}).click()
  await page.getByRole('dialog',{name:'切换节点'}).getByRole('button',{name:/Hong Kong/}).click()
- await expect(page).not.toHaveURL(/routes=/)
+ await expect(page).toHaveURL(/routes=all/)
  await expect(page).toHaveURL(/lh=24/)
- await expect(routes.locator('button[aria-pressed=true]')).toHaveCount(1)
- await expect(page.locator('.latency-route-controls').getByLabel('查看线路',{exact:true})).toContainText('线路 5')
- await expect(page.locator('.latency-view .recharts-line-curve')).toHaveCount(1)
+ await expect(routes.locator('button[aria-pressed=true]')).toHaveCount(2)
+ await expect(page.locator('.latency-route-controls').getByLabel('查看线路',{exact:true})).toContainText('显示全部线路')
+ await expect(page.locator('.latency-view .recharts-line-curve')).toHaveCount(2)
 })
 
 for(const width of [320,390])test(`mobile ${width} latency sample panel leaves the chart visible`,async({page})=>{

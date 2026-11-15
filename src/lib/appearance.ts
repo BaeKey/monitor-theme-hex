@@ -2,7 +2,7 @@ import { tr } from './i18n.ts'
 export const palettes = { default: '经典蓝', ocean: '海洋', sunset: '落日', forest: '森林', midnight: '午夜', rose: '玫瑰' };
 export const cardLayouts = { classic: '经典', modern: '现代', minimal: '极简', detailed: '详细', compact: '紧凑行' };
 export const graphStyles = { ring: '圆环', bar: '进度条', columns: '分段柱条', minimal: '极简数字' };
-export const moduleLabels = { online: '在线节点', busiest: '高负载提示', traffic: '流量统计', speed: '实时网速', regions: '地区统计', clock: '当前时间', map: '首页地图' };
+export const moduleLabels = { online: '在线节点', busiest: '高负载提示', traffic: '流量统计', speed: '实时网速', regions: '地区统计', clock: '当前时间' };
 export const cardInfoLabels = { traffic: '本月用量', connections: 'TCP／UDP', uptime: '在线时长', expiry: '到期信息', remarks: '备注标签', price: '价格' };
 export type CardInfo = Record<keyof typeof cardInfoLabels, boolean>;
 export const defaultCardInfo: CardInfo = {traffic:true,connections:true,uptime:true,expiry:true,remarks:true,price:true};
@@ -16,12 +16,6 @@ export type Preferences = {
     mobileInfoMode: 'follow' | 'custom';
     desktopColumns: 'auto' | '2' | '3' | '4';
     // Legacy import metadata only; v2 uses one shared visual system.
-    probe: string;
-    homeRoutes: number;
-    latencyScale: 200 | 500;
-    latencyWindow: 1 | 6 | 24;
-    latencyWarn: number;
-    latencyHigh: number;
     skin: 'lumina' | 'original';
     mobileLayout: keyof typeof cardLayouts | 'inherit';
     designVersion: 1;
@@ -31,7 +25,6 @@ export type Preferences = {
     layout: 'comfortable' | 'compact';
     cardLayout: keyof typeof cardLayouts;
     appearance: 'system' | 'light' | 'dark';
-    map: boolean;
     showTotals: boolean;
     icons: boolean;
     backgroundUrl: string;
@@ -48,9 +41,9 @@ export const defaults: Preferences = {
     summaryCollapsed: false, infoDensity: 'overview',
     detailInfoMode: 'expanded',
     cardInfo: {...defaultCardInfo}, mobileCardInfo: null, mobileInfoMode: 'follow', desktopColumns: 'auto',
-    probe: 'auto', homeRoutes: 1, latencyScale:500, latencyWindow:1, latencyWarn:150, latencyHigh:300, skin: 'lumina', mobileLayout: 'inherit', designVersion: 1, schemaVersion: 3, palette: 'default', graph: 'bar', layout: 'comfortable', cardLayout: 'classic', appearance: 'system', map: true,
+    skin: 'lumina', mobileLayout: 'inherit', designVersion: 1, schemaVersion: 3, palette: 'default', graph: 'bar', layout: 'comfortable', cardLayout: 'classic', appearance: 'system',
     showTotals: true, icons: true, backgroundUrl: '', backgroundBlur: 0, backgroundMask: 45, backgroundType: 'soft', glass: false, cardOpacity: 88, cardBlur: 12, speedStyle: 'spark',
-    modules: { online: true, busiest: true, traffic: true, speed: true, regions: false, clock: false, map: true },
+    modules: { online: true, busiest: true, traffic: true, speed: true, regions: false, clock: false },
 };
 function object(v: unknown): Record<string, unknown> { return v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {}; }
 export function safeBackground(value: unknown): string {
@@ -80,20 +73,13 @@ export function normalizePreferences(input: unknown, base: Preferences = default
             modules[key] = object(v.modules)[key] as boolean;
     }
     const info = (input: unknown, fallback: CardInfo): CardInfo => Object.fromEntries(Object.keys(defaultCardInfo).map(key=>[key,typeof object(input)[key]==='boolean'?object(input)[key]:fallback[key as keyof CardInfo]])) as CardInfo;
-    const warn=number('latencyWarn',1,4999),high=number('latencyHigh',2,5000);
     return {
         summaryCollapsed:false, infoDensity:choose(v.infoDensity,['overview','full'],base.infoDensity),
-        latencyScale:v.latencyScale===200||v.latencyScale===500?v.latencyScale:base.latencyScale,
-        latencyWindow:v.latencyWindow===1||v.latencyWindow===6||v.latencyWindow===24?v.latencyWindow:base.latencyWindow,
-        latencyWarn:warn<high?warn:base.latencyWarn,
-        latencyHigh:warn<high?high:base.latencyHigh,
         detailInfoMode: 'expanded',
         cardInfo: info(v.cardInfo, base.cardInfo),
         mobileCardInfo: v.mobileCardInfo === null ? null : v.mobileCardInfo && typeof v.mobileCardInfo === 'object' && !Array.isArray(v.mobileCardInfo) ? info(v.mobileCardInfo, base.mobileCardInfo || base.cardInfo) : base.mobileCardInfo,
         mobileInfoMode: choose(v.mobileInfoMode, ['follow','custom'],base.mobileInfoMode),
         desktopColumns: choose(v.desktopColumns, ['auto','2','3','4'],base.desktopColumns),
-        probe: v.probe === 'auto' || (typeof v.probe === 'string' && /^[1-9]\d*$/.test(v.probe) && Number.isSafeInteger(Number(v.probe))) ? v.probe : base.probe,
-        homeRoutes: Math.round(number('homeRoutes', 1, 3)),
         skin: choose(v.skin, ['lumina', 'original'], base.skin),
         mobileLayout: choose(v.mobileLayout, ['inherit', ...Object.keys(cardLayouts)] as Preferences['mobileLayout'][], Object.hasOwn(v, 'cardLayout') && !Object.hasOwn(v, 'mobileLayout') ? 'inherit' : base.mobileLayout),
         designVersion: 1,
@@ -104,7 +90,7 @@ export function normalizePreferences(input: unknown, base: Preferences = default
         layout: choose(v.layout, ['comfortable', 'compact'], v.cardLayout === 'compact' ? 'compact' : base.layout),
         cardLayout: choose(v.cardLayout, Object.keys(cardLayouts) as (keyof typeof cardLayouts)[], base.cardLayout),
         appearance: choose(v.appearance, ['system', 'light', 'dark'], base.appearance),
-        map: bool('map'), showTotals: bool('showTotals'), icons: bool('icons'), glass: bool('glass'),
+        showTotals: bool('showTotals'), icons: bool('icons'), glass: bool('glass'),
         backgroundUrl: typeof v.backgroundUrl === 'string' ? safeBackground(v.backgroundUrl) : base.backgroundUrl,
         backgroundBlur: number('backgroundBlur', 0, 30), backgroundMask: number('backgroundMask', 0, 90),
         backgroundType: choose(v.backgroundType, ['soft', 'glass'], base.backgroundType),
@@ -134,7 +120,7 @@ export function parsePreferences(text: string, base: Preferences = defaults): Pr
     return normalizePreferences({...data,...(!Object.hasOwn(data,"infoDensity")&&data.schemaVersion!==3?{infoDensity:"full"}:{})}, base);
 }
 export function restoreAppearance(current: Preferences, site: Preferences): Preferences {
-    return { ...site, summaryCollapsed:false, infoDensity:current.infoDensity, detailInfoMode:'expanded', cardInfo:current.cardInfo,mobileCardInfo:current.mobileCardInfo,mobileInfoMode:current.mobileInfoMode,desktopColumns:current.desktopColumns, probe:current.probe, homeRoutes:current.homeRoutes, latencyScale:current.latencyScale, latencyWindow:current.latencyWindow, latencyWarn:current.latencyWarn, latencyHigh:current.latencyHigh, map: current.map, modules: { ...current.modules } };
+    return { ...site, summaryCollapsed:false, infoDensity:current.infoDensity, detailInfoMode:'expanded', cardInfo:current.cardInfo,mobileCardInfo:current.mobileCardInfo,mobileInfoMode:current.mobileInfoMode,desktopColumns:current.desktopColumns, modules: { ...current.modules } };
 }
 
 /** Store only differing fields; nested module choices inherit independently. */

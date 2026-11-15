@@ -2,8 +2,8 @@ import { useEffect, useState, useMemo, useCallback, type SetStateAction } from '
 import { normalizePreferences, type Preferences, type DisplayPatch } from './appearance'
 export { palettes } from './appearance'
 export type { Preferences } from './appearance'
-const personalKeys = ['appearance', 'probe'] as const
-export type DesktopPreferences = {mapExpanded?:boolean;cardDensity:'compact'|'detailed'}
+const personalKeys = ['appearance'] as const
+export type DesktopPreferences = {cardDensity:'compact'|'detailed'}
 const desktopKey='hex-desktop-v1'
 export function useDesktopPreferences(){
  const [desktop,setDesktop]=useState<DesktopPreferences>(()=>{
@@ -20,8 +20,7 @@ export function usePreferences(siteDefaults: Preferences) {
       const saved = JSON.parse(localStorage.getItem('monitor-next') || '{}')
       const next = normalizePreferences(saved, siteDefaults)
       const personal: Record<string,unknown> = {}
-      // Version 1 could copy the site's route from browse state as a personal choice.
-      for (const key of personalKeys) if (!(key==='probe'&&saved?._storageVersion===1) && Object.hasOwn(saved || {},key) && saved[key] === next[key]) personal[key] = next[key]
+      for (const key of personalKeys) if (Object.hasOwn(saved || {},key) && saved[key] === next[key]) personal[key] = next[key]
       if (!Object.hasOwn(saved || {},'appearance')) {
         const mode = localStorage.getItem('monitor-next-mode')
         if (mode === 'dark' || mode === 'light') personal.appearance = mode

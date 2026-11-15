@@ -39,7 +39,7 @@ export function applySiteConfig(saved: unknown, base: Preferences): Preferences 
     if (field.key.startsWith('module_')) modules[field.key.slice(7)] = value
     else if (field.key.startsWith('card_info_')) cardInfo[field.key.slice(10)] = value
     else if (field.key.startsWith('mobile_card_info_')) mobileCardInfo[field.key.slice(17)] = value
-    else patch[field.key] = field.key === 'latencyScale' || field.key === 'latencyWindow' ? Number(value) : value
+    else patch[field.key] = value
   }
   if (Object.keys(modules).length) patch.modules = modules
   if (Object.keys(cardInfo).length) patch.cardInfo = cardInfo

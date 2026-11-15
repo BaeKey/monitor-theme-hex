@@ -5,7 +5,7 @@ assert.equal(legacy.schemaVersion,3)
 assert.equal(legacy.cardLayout,'classic')
 assert.equal(legacy.layout,'compact')
 assert.equal(legacy.graph,'bar')
-assert.equal(legacy.map,true)
+assert.equal(Object.hasOwn(legacy,'map'),false)
 const site=normalizePreferences({palette:'rose',modules:{clock:true,online:false}})
 const override=normalizePreferences({graph:'columns',modules:{speed:false}},site)
 assert.equal(override.palette,'rose'); assert.equal(override.modules.clock,true); assert.equal(override.modules.online,false); assert.equal(override.modules.speed,false)
@@ -26,18 +26,12 @@ const clean=parsePreferences('{"palette":"ocean","html":"<script>bad</script>","
 assert.equal(clean.palette,'ocean'); assert.equal(Object.hasOwn(clean,'html'),false); assert.equal(Object.hasOwn(clean,'polluted'),false)
 assert.deepEqual(parsePreferences(JSON.stringify(override)),override)
 const reset=restoreAppearance(legacy,site)
-assert.equal(reset.palette,'rose');assert.equal(reset.map,true);assert.deepEqual(reset.modules,legacy.modules)
+assert.equal(reset.palette,'rose');assert.deepEqual(reset.modules,legacy.modules)
 console.log('appearance migration, defaults precedence, validation, import/export and reset passed')
 
-assert.equal(normalizePreferences({probe:'2'}).probe,'2')
-for(const probe of ['-1','0','1.5','9007199254740993',null,{},2]) assert.equal(normalizePreferences({probe}).probe,'auto')
-assert.equal(restoreAppearance(normalizePreferences({probe:'2'}),defaults).probe,'2')
-
-assert.equal(normalizePreferences({}).homeRoutes,1)
-assert.equal(normalizePreferences({homeRoutes:99}).homeRoutes,3)
-assert.equal(normalizePreferences({homeRoutes:0}).homeRoutes,1)
-assert.equal(normalizePreferences({homeRoutes:NaN}).homeRoutes,1)
-assert.equal(restoreAppearance(normalizePreferences({homeRoutes:3}),defaults).homeRoutes,3)
+const obsolete=normalizePreferences({probe:'2',homeRoutes:3,map:true,modules:{map:true}})
+for(const key of ['probe','homeRoutes','map'])assert.equal(Object.hasOwn(obsolete,key),false)
+assert.equal(Object.hasOwn(obsolete.modules,'map'),false)
 
 // Display defaults remain compatible with old configurations and nested site values.
 assert.deepEqual(normalizePreferences({}).cardInfo,{traffic:true,connections:true,uptime:true,expiry:true,remarks:true,price:true})
@@ -64,17 +58,7 @@ for(const mode of ['auto','expanded','collapsed'] as const){
 }
 assert.equal(normalizePreferences({detailInfoMode:'invalid'}).detailInfoMode,'expanded')
 
-assert.equal(legacy.latencyScale,500);assert.equal(legacy.latencyWindow,1);assert.equal(legacy.latencyWarn,150);assert.equal(legacy.latencyHigh,300)
-const customLatency=parsePreferences(JSON.stringify({...defaults,latencyScale:500,latencyWindow:24,latencyWarn:100,latencyHigh:250}))
-assert.equal(customLatency.latencyScale,500);assert.equal(customLatency.latencyWarn,100)
-assert.equal(customLatency.latencyWindow,24)
-assert.equal(normalizePreferences({latencyScale:999}).latencyScale,500)
-assert.equal(normalizePreferences({latencyWindow:12}).latencyWindow,1)
-assert.equal(normalizePreferences({latencyWarn:200,latencyHigh:100}).latencyWarn,150)
-assert.equal(normalizePreferences({latencyHigh:NaN}).latencyHigh,300)
-assert.equal(restoreAppearance(customLatency,defaults).latencyHigh,250)
-assert.equal(restoreAppearance(customLatency,defaults).latencyWindow,24)
-assert.equal(parsePreferences(JSON.stringify(customLatency)).latencyHigh,250)
+
 
 assert.equal(parsePreferences('{"schemaVersion":2,"graph":"columns"}').infoDensity,'full')
 assert.equal(parsePreferences(JSON.stringify(defaults)).infoDensity,'overview')

@@ -40,7 +40,7 @@ body { font-family: "HEX Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", 
   .next-theme .page-heading h1 { font-size: 28px; letter-spacing: -.9px; font-weight: 600; }
   .next-theme .page-heading .live-label { background: transparent; border: 0; padding: 0; font-size: 11px; }
   .next-theme .overview-heading .update-time { font-size: 11px; }
-  .next-theme .home-overview-grid { gap: 24px; grid-template-columns: minmax(0,1fr) minmax(0,1.16fr); }
+  .next-theme .home-overview-grid { gap: 24px; grid-template-columns: minmax(0,1fr); }
   .next-theme .home-overview-grid .overview-summary { padding: 18px 22px; border-color: var(--border); border-radius: var(--radius-panel); }
   .next-theme .overview-panel-title { font-size: 13px; font-weight: 500; margin-bottom: 13px; }
   .next-theme .overview-panel-title::before { content: none; }
@@ -50,42 +50,6 @@ body { font-family: "HEX Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", 
   .next-theme .home-overview-grid .summary-grid .summary-flow { font-size: 12px; font-weight: 400; }
   .next-theme .home-overview-grid .summary-grid .h-7 { height: 10px; margin-top: 0; }
   .next-theme .home-overview-grid .summary-grid .load-alert-tile[data-active=true] { background: transparent; }
-  .next-theme .home-overview-grid .persistent-map { min-height: 300px; border-color: #34485e; border-radius: var(--radius-panel); box-shadow: inset 0 1px 0 #ffffff0a, 0 8px 24px -8px #1a304735; }
-  .next-theme .persistent-map,
-  .dark .next-theme .persistent-map,
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) {
-    --map-sea: #152235; --map-land: #3c5675; --map-text: #e5edf8;
-    --map-muted: #a3b7d0; --map-accent: #a5d2df; --map-line: #34485e;
-    --map-online: #8bcab5; --map-warning: #e0be85; --map-offline: #8a9bb1; --map-tooltip: #1b2a3e;
-  }
-  .next-theme .persistent-map .home-map-heading { font-size: 13px; font-weight: 500; background: transparent; }
-  .next-theme .persistent-map .map-state-legend { background: color-mix(in srgb,var(--map-sea) 88%,transparent); }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-quick-select button { background: var(--map-tooltip); color: var(--map-text); border-color: var(--map-line); }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-quick-select button[aria-pressed=true] { background: color-mix(in srgb,var(--map-accent) 12%,var(--map-sea)); }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-region-group > circle { fill: var(--map-tooltip); stroke: var(--map-accent); }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-region-group > text { fill: var(--map-text); }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-region-chooser { background: var(--map-tooltip); color: var(--map-text); border-color: var(--map-line); }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-region-chooser > [data-member] { border-color: var(--map-line); }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-region-chooser > [data-member] span { color: var(--map-muted); }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-region-details { top: 108px; bottom: 48px; }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-region-details[data-side=left] { left: max(8px,calc(50% - 115px)); }
-  .next-theme .persistent-map .home-region-bar { inset: 14px 18px auto; }
-  .next-theme .persistent-map .home-map-heading { padding: 5px 0; max-width: calc(100% - 370px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .next-theme .persistent-map .home-map-tools .map-expand { width: 30px; min-height: 30px; padding: 6px; border: 1px solid var(--map-line); border-radius: 7px; }
-  .next-theme .persistent-map .home-map-tools .map-expand span { display: none; }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-desktop-quick { top: 14px; left: auto; right: 220px; max-width: 140px; }
-  .next-theme .persistent-map .map-region-dropdown { width: 140px; overflow: visible; }
-  .next-theme .persistent-map .map-region-dropdown [data-slot=select] { width: 100%; min-height: 30px; height: 30px; border: 1px solid var(--map-line); border-radius: 7px; background: var(--map-tooltip); color: var(--map-text); font-size: 11px; }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-layer-tools { position: static; }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-layer-buttons { position: absolute; top: 14px; right: 58px; padding: 2px; border: 1px solid var(--map-line); border-radius: 7px; background: var(--map-tooltip); }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-layer-buttons button { border: 0; min-height: 26px; padding: 3px 8px; }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-layer-buttons button[aria-pressed=true] { background: color-mix(in srgb,var(--map-accent) 16%,var(--map-sea)); box-shadow: inset 0 1px 0 #ffffff12; }
-  .next-theme .persistent-map :is(button,[data-slot=select]):focus-visible { outline: 2px solid var(--map-accent); }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-abnormal { position: absolute; right: 160px; bottom: 16px; font-size: 10px; }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-abnormal:disabled { display: none; }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-layer-tools > p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .next-theme .persistent-map .map-state-legend { background: transparent; padding: 2px 0; }
-  .next-theme .persistent-map .region-atlas:not(.is-fullscreen) .map-region-details header { background: transparent; color: var(--map-text); }
 
   /* Search, region/group controls and status all belong to the results. */
   .next-theme #node-results .desktop-results-toolbar { gap: 12px; margin-bottom: 17px; }
@@ -200,7 +164,6 @@ body { font-family: "HEX Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", 
 }
 @media (min-width: 721px) and (max-width: 1100px) {
   .next-theme .home-overview-grid { grid-template-columns: 1fr; }
-  .next-theme .home-overview-grid .persistent-map { min-height: 300px; }
 }
 @media (min-width: 721px) and (max-width: 850px) {
   .next-theme #node-results .desktop-toolbar-left { gap: 10px; }

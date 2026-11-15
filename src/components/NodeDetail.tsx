@@ -15,7 +15,7 @@ import {DetailAccount} from './DetailAccount'
 import '@/styles/detail-optimization.css'
 import {ResourceHistory,type ResourceMetricKey} from './ResourceHistory'
 import {DetailToolbar,type HistoryTab} from './DetailToolbar'
-import { PING_REFRESH_INTERVAL, PING_RETRY_INTERVAL, probeCatalog, selectPing, summarizePing, windowLoss } from '@/lib/ping'
+import { PING_REFRESH_INTERVAL, PING_RETRY_INTERVAL, probeCatalog, windowLoss } from '@/lib/ping'
 import { tr, locale } from '../lib/i18n.ts'
 import { useEffect, useMemo, useState, useRef } from "react";
 import { median } from "d3-array";
@@ -109,7 +109,7 @@ function ChartStatisticsSheet({onClose}:{onClose:()=>void}){
     </MobileSheet>;
 }
 
-export function NodeDetail({ node, prefs, authed, probe = "auto", nodes, onSwitch, detailInfoMode, onDetailInfoMode, mobilePreferences=mobileDefaults, onBack }: {
+export function NodeDetail({ node, prefs, authed, nodes, onSwitch, detailInfoMode, onDetailInfoMode, mobilePreferences=mobileDefaults, onBack }: {
     authed:boolean;
     prefs:Preferences;
     onBack?:()=>void;
@@ -117,7 +117,6 @@ export function NodeDetail({ node, prefs, authed, probe = "auto", nodes, onSwitc
     detailInfoMode:Preferences['detailInfoMode'];
     onDetailInfoMode:(mode:Preferences['detailInfoMode'])=>void;
     node: Node;
-    probe?:string;
     nodes:Node[];
     onSwitch:(id:number)=>void;
 }) {
@@ -175,7 +174,7 @@ export function NodeDetail({ node, prefs, authed, probe = "auto", nodes, onSwitc
     const [resourceSnapshot,setResourceSnapshot]=useState<typeof data>(null);
     const refresh=()=>{if(!busy.current){busy.current=true;setLoading(true);setRetry(n=>n+1);}};
     const updated=data?.key===`${node.id}:${hours}:${tab}`?data.updated:null;
-    useEffect(()=>{const q=new URLSearchParams(location.search);q.set('rh',String(ranges.resources));q.set('lh',String(ranges.latency));q.set('metric',resourceMetric);q.set('section',mobileSection);if(selectedProbes===null)q.delete('routes');else q.set('routes',selectedProbes==='all'?'all':selectedProbes.join(','));history.replaceState(history.state,'',location.pathname+'?'+q+((mobile?mobileSection==='latency':tab==='latency')?'#latency':''))},[ranges,resourceMetric,selectedProbes,tab,mobile,mobileSection]);
+    useEffect(()=>{const q=new URLSearchParams(location.search);q.set('rh',String(ranges.resources));q.set('lh',String(ranges.latency));q.set('metric',resourceMetric);q.set('section',mobileSection);q.set('routes',selectedProbes==='all'?'all':selectedProbes.join(','));history.replaceState(history.state,'',location.pathname+'?'+q+((mobile?mobileSection==='latency':tab==='latency')?'#latency':''))},[ranges,resourceMetric,selectedProbes,tab,mobile,mobileSection]);
     // Where the brush has been dragged, so the axis reticks for the visible span
     // rather than retaining the whole window's ticks.
     const [zoomWindow, setZoomWindow] = useState<[
@@ -262,9 +261,8 @@ export function NodeDetail({ node, prefs, authed, probe = "auto", nodes, onSwitc
     })) : [], [data]);
     // The hub answers in seconds; the time axis requires milliseconds.
     const metricRows = useMemo(() => normalizeResourceSamples((data?.metrics ?? []).map(m=>({...m,ts:m.ts*1000}))), [data]);
-    const routeSummaries = useMemo(() => summarizePing({ping:data?.ping ?? [],probes:data?.probes,loss:data?.loss}), [data]);
-    const defaultProbe = probe === "auto" ? selectPing(routeSummaries, probe)?.id : Number(probe);
-    const visibleIds = selectedRouteIds(selectedProbes,pingSeries.map(s=>s.id),defaultProbe);
+    const preferredProbe = Array.isArray(selectedProbes) ? selectedProbes[0] : undefined;
+    const visibleIds = selectedRouteIds(selectedProbes,pingSeries.map(s=>s.id));
     const shownProbes = pingSeries.filter(s=>visibleIds.includes(s.id));
     // The same probe ID retains its colour when the time window/catalog changes.
     const style = (id:number) => PALETTE[id-1] ?? {stroke:`hsl(${(id*137.508)%360} 28% var(--latency-line-lightness))`};
@@ -341,17 +339,15 @@ export function NodeDetail({ node, prefs, authed, probe = "auto", nodes, onSwitc
     // Mobile sliders control an explicit slice. Folding their UI never resets
     // the domain, and no hidden Recharts Brush can retain stale index state.
     const mobileChartRows=useMemo(()=>zoom?pingRows.slice(zoom[0],zoom[1]+1):pingRows,[pingRows,zoom]);
-    const activeRoute=shownProbes.find(s=>s.id===defaultProbe)??shownProbes[0];
+    const activeRoute=shownProbes.find(s=>s.id===preferredProbe)??shownProbes[0];
     const axisMaximum=shownProbes.reduce((max,s)=>s.points.reduce((max,p)=>Math.max(max,p.latency??0,p.band?.[1]??0),max),0);
     const axisWidth=compact?Math.max(30,Math.min(60,String(Math.ceil(axisMaximum*1.1)).length*7+12)):52;
-    const routeValue=selectedProbes===null?'auto':selectedProbes==='all'?'all':selectedProbes.length===1?String(selectedProbes[0]):'custom';
-    const globalRoute=pingSeries.find(s=>s.id===defaultProbe);
+    const routeValue=selectedProbes==='all'?'all':selectedProbes.length===1?String(selectedProbes[0]):'custom';
     const latestRoutePoint=shownProbes.length===1?activeRoute?.points.at(-1):undefined;
-    const routeLabel=routeValue==='auto'?tr("跟随全局：{0}",globalRoute?.name??tr("无该线路记录")):routeValue==='all'?tr("显示全部线路"):routeValue==='custom'?`${tr("自定义")} · ${visibleIds.length}`:activeRoute?.name??tr("无该线路记录");
-    const routeControl=<Select sheet={mobile} aria-label={tr("查看线路")} title={routeLabel} displayValue={<><span>{routeLabel}</span>{latestRoutePoint&&<b> · {latestRoutePoint.latency===null?tr("超时"):`${Math.round(latestRoutePoint.latency)} ms`}</b>}</>} value={routeValue} onChange={e=>{setSelectedProbes(e.target.value==='auto'?null:e.target.value==='all'?'all':[Number(e.target.value)]);setHighlightProbe(null);tooltipDismiss()}}>
-      <option value="auto">{tr("跟随全局：{0}",globalRoute?.name??tr("无该线路记录"))}</option>
+    const routeLabel=routeValue==='all'?tr("显示全部线路"):routeValue==='custom'?`${tr("自定义")} · ${visibleIds.length}`:activeRoute?.name??tr("无该线路记录");
+    const routeControl=<Select sheet={mobile} aria-label={tr("查看线路")} title={routeLabel} displayValue={<><span>{routeLabel}</span>{latestRoutePoint&&<b> · {latestRoutePoint.latency===null?tr("超时"):`${Math.round(latestRoutePoint.latency)} ms`}</b>}</>} value={routeValue} onChange={e=>{setSelectedProbes(e.target.value==='all'?'all':[Number(e.target.value)]);setHighlightProbe(null);tooltipDismiss()}}>
+      <option value="all">{tr("显示全部线路")}</option>
       {pingSeries.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
-      {pingSeries.length>1&&<option value="all">{tr("显示全部线路")}</option>}
       {routeValue==='custom'&&<option value="custom" disabled>{tr("自定义")} · {visibleIds.length}</option>}
       {Array.isArray(selectedProbes)&&selectedProbes.length===1&&!pingSeries.some(s=>s.id===selectedProbes[0])&&<option value={selectedProbes[0]} disabled>{tr("无该线路记录")} · {selectedProbes[0]}</option>}
     </Select>;
@@ -400,7 +396,7 @@ export function NodeDetail({ node, prefs, authed, probe = "auto", nodes, onSwitc
             </div>}
             <div className="latency-chart-caption"><span>{tr("延迟")} · ms</span><span className="latency-chart-key" style={{color:'var(--muted-foreground)','--latency-key-color':activeRoute?style(activeRoute.id).stroke:undefined} as React.CSSProperties}>{shownProbes.length===1&&<><i className="latency-band-key"/><span title={tr("采样范围（最小–最大）")}>{tr("采样范围")}</span></>}<i className="latency-line-key"/>{smooth?tr("抑制尖峰"):tr("采样中位值")}</span></div>
             <div className="detail-chart-frame text-muted-foreground" title={tr("拖动两端缩放 · 双击恢复全范围")} onDoubleClick={()=>{setZoom(null);tooltipDismiss()}} ref={tooltipFrame} onClickCapture={tooltipClick} onPointerMove={tooltipMove} onKeyDownCapture={tooltipKey}>
-              {shownProbes.length === 0 ? (<HistoryState message={(selectedProbes?.length || selectedProbes === null && probe !== "auto") ? tr("无该线路记录") : tr("没有选中任何探测")} action={tr("选择线路")} onAction={openRoutes}/>) : !shownProbes.some(s=>s.points.length) ? <HistoryState message={tr("这段时间没有延迟数据")} action={tr("调整时间范围")} onAction={chooseRange}/> : (<ResponsiveContainer>
+              {shownProbes.length === 0 ? (<HistoryState message={(Array.isArray(selectedProbes) && selectedProbes.length) ? tr("无该线路记录") : tr("没有选中任何探测")} action={tr("选择线路")} onAction={openRoutes}/>) : !shownProbes.some(s=>s.points.length) ? <HistoryState message={tr("这段时间没有延迟数据")} action={tr("调整时间范围")} onAction={chooseRange}/> : (<ResponsiveContainer>
                   <ComposedChart data={mobile?mobileChartRows:pingRows}>
                     <CartesianGrid strokeDasharray="3 5" stroke="var(--border)" vertical={false}/>
                     <XAxis height={compact?30:68} {...(mobile?timeAxis(mobileChartRows):timeAxis(pingRows, Math.min(zoom?.[0] ?? 0, pingRows.length - 1), Math.min(zoom?.[1] ?? pingRows.length - 1, pingRows.length - 1)))}/>
@@ -443,7 +439,7 @@ export function NodeDetail({ node, prefs, authed, probe = "auto", nodes, onSwitc
             </div>
             {compact&&pingRows.length>0&&<div className="latency-range-caption"><span>{clockFor(hours)(rangeStart)} – {clockFor(hours)(rangeEnd)}</span>{!mobile&&zoomed&&<button onClick={()=>{setZoom(null);tooltipDismiss()}}>{tr("恢复范围")}</button>}</div>}
             {mobile&&pingRows.length>1&&shownProbes.length>0&&<><div className="ma-chart-zoom-actions">{zoomed&&<button onClick={()=>{setZoom(null);tooltipDismiss()}}>{tr('恢复全范围')}</button>}</div><details className="ma-chart-viewport" key={`${node.id}:${hours}`}><summary>{tr('调整视野')}</summary><div id="ma-chart-zoom" className="ma-chart-zoom"><p>{tr('仅调整当前图表视野；摘要统计仍使用完整查询范围。')}</p><div className="ma-chart-zoom-presets">{[15,30].map(minutes=><button key={minutes} type="button" disabled={quickStart(minutes)>=pingRows.length-1} onClick={()=>{setZoom([quickStart(minutes),pingRows.length-1]);tooltipDismiss()}}>{tr('最近 {0} 分钟',minutes)}</button>)}</div><label>{tr('开始时间')}<output>{new Date(rangeStart).toLocaleString(locale())}</output><input aria-label={tr('开始时间')} type="range" min={0} max={pingRows.length-2} value={zoom?.[0]??0} aria-valuetext={new Date(rangeStart).toLocaleString(locale())} onChange={e=>{const start=Number(e.target.value);setZoom([start,Math.max(start+1,zoom?.[1]??pingRows.length-1)]);tooltipDismiss()}}/></label><label>{tr('结束时间')}<output>{new Date(rangeEnd).toLocaleString(locale())}</output><input aria-label={tr('结束时间')} type="range" min={1} max={pingRows.length-1} value={zoom?.[1]??pingRows.length-1} aria-valuetext={new Date(rangeEnd).toLocaleString(locale())} onChange={e=>{const end=Number(e.target.value);setZoom([Math.min(end-1,zoom?.[0]??0),end]);tooltipDismiss()}}/></label></div></details></>}
-            {shownProbes.length>0&&pingRows.length>0&&<LossTrack showRoute={mobile} selected={activeRoute?.id} key={`${node.id}:${hours}:${activeRoute?.id}`} series={shownProbes} preferred={defaultProbe} start={pingRows[Math.min(zoom?.[0]??0,pingRows.length-1)].ts} end={pingRows[Math.min(zoom?.[1]??pingRows.length-1,pingRows.length-1)].ts}/>}
+            {shownProbes.length>0&&pingRows.length>0&&<LossTrack showRoute={mobile} selected={activeRoute?.id} key={`${node.id}:${hours}:${activeRoute?.id}`} series={shownProbes} preferred={preferredProbe} start={pingRows[Math.min(zoom?.[0]??0,pingRows.length-1)].ts} end={pingRows[Math.min(zoom?.[1]??pingRows.length-1,pingRows.length-1)].ts}/>}
           </div>)) : (data.metrics ?? []).length === 0 ? (<HistoryState message={tr("这段时间没有历史数据")} action={tr("调整时间范围")} onAction={chooseRange}/>) : (<ResourceHistory compact={compact} mobile={mobile} rows={metricRows} node={node} hours={hours} metric={resourceMetric}/>)}
       </div></section>}
 
