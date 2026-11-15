@@ -1,3 +1,4 @@
+import { withBase } from './base.ts'
 import manifest from '../../theme.json' with {type:'json'}
 import {normalizePreferences, type Preferences} from './appearance.ts'
 
@@ -38,7 +39,7 @@ export function applySiteConfig(saved: unknown, base: Preferences): Preferences 
     if (field.key.startsWith('module_')) modules[field.key.slice(7)] = value
     else if (field.key.startsWith('card_info_')) cardInfo[field.key.slice(10)] = value
     else if (field.key.startsWith('mobile_card_info_')) mobileCardInfo[field.key.slice(17)] = value
-    else patch[field.key] = field.key === 'latencyScale' || field.key === 'latencyWindow' ? Number(value) : value
+    else patch[field.key] = value
   }
   if (Object.keys(modules).length) patch.modules = modules
   if (Object.keys(cardInfo).length) patch.cardInfo = cardInfo
@@ -48,7 +49,7 @@ export function applySiteConfig(saved: unknown, base: Preferences): Preferences 
 
 export async function fetchSiteConfig(): Promise<unknown | null> {
   try {
-    const response = await fetch(url, {signal: AbortSignal.timeout(3000), cache: 'no-cache'})
+    const response = await fetch(withBase(url), {signal: AbortSignal.timeout(3000), cache: 'no-cache'})
     if (response.ok) return await response.json()
   } catch { /* An unavailable hub config does not block the public page. */ }
   return null

@@ -1,6 +1,5 @@
 {
   "schemaVersion": 3,
-  "homeRoutes": 1,
   "palette": "default",
   "appearance": "system",
   "layout": "comfortable",
@@ -21,11 +20,9 @@
     "traffic": true,
     "speed": true,
     "regions": false,
-    "clock": false,
-    "map": true
+    "clock": false
   },
   "designVersion": 1,
-  "probe": "auto",
   "cardInfo": {
     "traffic": true,
     "connections": true,
@@ -38,9 +35,5 @@
   "mobileCardInfo": null,
   "desktopColumns": "auto",
   "detailInfoMode": "auto",
-  "latencyScale": 500,
-  "latencyWindow": 1,
-  "latencyWarn": 150,
-  "latencyHigh": 300,
   "infoDensity": "overview"
 }

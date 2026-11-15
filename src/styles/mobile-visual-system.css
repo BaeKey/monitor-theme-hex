@@ -61,7 +61,6 @@
   .next-theme .mobile-app .ma-stat-grid strong { font-size: 26px; font-weight: 600; letter-spacing: -.8px; margin-top: 14px; white-space: nowrap; }
   .next-theme .mobile-app .ma-stat-grid p { font-size: 11px; }
   .next-theme .mobile-app .ma-regions-heading > div { display: flex; align-items: center; gap: 6px; }
-  .next-theme .mobile-app .mm-entry { display: inline-flex; align-items: center; gap: 3px; min-height: 44px; font-size: 12px; color: var(--tone); }
   .next-theme .mobile-app .ma-records-entry { border: 1px solid var(--border); border-radius: 14px; padding-inline: 18px; box-shadow: var(--surface-shadow); }
   .next-theme .mobile-app .ma-app-info { padding-top: 30px; }
   .next-theme .mobile-app .ma-app-info strong { letter-spacing: .06em; font-size: 12px; }

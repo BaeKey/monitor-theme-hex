@@ -121,3 +121,6 @@
  .ma-capacity-value{white-space:nowrap;overflow-wrap:normal}
 }
 @media(max-width:350px){.detail-grouped .overview-usage>b{font-size:18px}.detail-grouped .account-card{padding:12px}}
+
+/* Hidden account fields must not leave a lone card in a quarter-width slot. */
+.next-theme .detail-grouped .overview-account>.account-card:only-child{grid-column:1/-1}

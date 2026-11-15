@@ -1,3 +1,4 @@
+import { withBase } from './base.ts'
 import { tr, getLanguage } from './i18n.ts'
 import { isRecentPingSample } from './pingRecency.ts'
 // Fetch cadence does not change the backend's probe/history resolution.
@@ -136,7 +137,7 @@ export function loadPing(id: number, force = false): Promise<PingHistory> {
     entry.request = limited(async () => {
         // Preserve minute resolution and the server's full-window loss. The homepage
         // selects its display window from this 24-hour response; detail charts reuse it.
-        const response = await fetch(`/api/nodes/${id}/metrics?hours=24&points=1440&series=ping`, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+        const response = await fetch(withBase(`/api/nodes/${id}/metrics?hours=24&points=1440&series=ping`), { cache: 'no-store', signal: AbortSignal.timeout(15000) });
         if (!response.ok)
             throw new Error(tr("\u5EF6\u8FDF\u6570\u636E\u6682\u4E0D\u53EF\u7528"));
         const data = await response.json() as PingHistory;

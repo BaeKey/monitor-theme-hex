@@ -44,16 +44,6 @@
 .node-card .node-footer {padding:8px 0 16px;gap:8px}
 .node-card .node-price {font-size:var(--text-small);border:0;padding:0;background:transparent;color:var(--muted-foreground)}
 .node-card .node-remarks .detail-remark-tag {font-size:var(--text-small);padding:3px 7px;background:color-mix(in srgb,var(--remark-ink) 7%,var(--card));color:color-mix(in srgb,var(--remark-ink) 60%,var(--foreground))}
-.region-atlas {border-color:var(--home-line);border-radius:14px}
-.region-atlas .map-land path {fill:color-mix(in srgb,var(--muted) 74%,var(--card))}
-.region-atlas .map-land .populated-region {fill:color-mix(in srgb,var(--tone) 32%,var(--card))}
-.region-atlas .section-heading,.region-atlas .map-tools,.region-atlas .map-view-switch {background:var(--home-float);border-color:var(--home-line);box-shadow:0 2px 8px #00000006;border-radius:10px;backdrop-filter:blur(8px)}
-.region-atlas .section-heading h2 {font-size:14px}
-.region-atlas .region-list button {min-width:auto;min-height:34px;padding:6px 9px;border-color:var(--home-line);border-radius:8px;gap:7px;background:var(--home-float);box-shadow:0 2px 6px #00000006}
-.region-atlas .region-list button:first-child {min-width:34px;padding:6px}
-.region-atlas .region-list .flag-icon {width:19px;height:14px;border-radius:2px;box-shadow:none}
-.region-atlas .region-list button>b {font-size:10px;color:var(--muted-foreground);font-weight:500}
-.region-atlas .map-help {border-color:var(--home-line);background:var(--home-float)}
 @media(max-width:720px){
  .overview-heading .page-heading h1 {font-size:20px}
  .summary-grid>div {padding:14px 12px}
@@ -63,11 +53,9 @@
  .node-card .node-heading {padding-block:15px}
  .node-card .node-identity h3 {font-size:15px}
  .node-card .speed-pair strong {font-size:20px}
- .region-atlas .section-heading h2 {font-size:13px}
 }
 @media(max-width:360px){.node-card .speed-pair strong {font-size:20px;flex-direction:column;align-items:flex-end;gap:3px}.node-card .node-status-group {gap:3px}.node-card .node-heading {gap:5px}.node-card .node-identity h3 {font-size:15px}}
 @media(prefers-reduced-motion:reduce){.node-card {transition:none}}
-@media(prefers-reduced-transparency:reduce){.region-atlas .section-heading,.region-atlas .map-tools,.region-atlas .map-view-switch,.region-atlas .region-list button {background:var(--card);backdrop-filter:none}}
 
 /* Persistent high-load overview: four equal tiles, two by two on mobile. */
 .summary-grid[data-load-alerts=true] {grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -239,7 +227,7 @@
  .node-card .node-timing {gap:8px}
  .node-card .remark-more {min-width:44px;min-height:44px}
 }
-@media(prefers-reduced-motion:reduce){.next-theme *, .next-theme *::before,.next-theme *::after {animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(prefers-reduced-motion:reduce){.next-theme *, .next-theme *::before, .next-theme *::after {animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 /* Overview retains billing/traffic and reveals secondary details in place. */
 .card-auxiliary-toggle {display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;margin:0 var(--card-pad);border-top:1px solid var(--home-line);color:var(--muted-foreground);font-size:12px}
@@ -270,17 +258,6 @@
  .summary-tile-heading:has(.summary-tile-notice) {display:contents}
  .summary-tile-notice {order:1;align-self:stretch;margin:4px 0 0;text-align:left}
 }
-
-.map-frame {position:relative;--map-height:310px}
-.map-frame .explorer-map,.map-frame .map-placeholder {height:var(--map-height)}
-.map-frame .map-placeholder {background:radial-gradient(ellipse at center,var(--muted),var(--card));border:1px solid var(--border)}
-.map-loading-message {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;height:100%;padding:30px 20px 80px;color:var(--muted-foreground);font-size:13px}
-.map-loading-message>div {display:flex;gap:12px}
-.map-loading-message button {padding:8px 14px;min-height:44px;border:1px solid var(--border);border-radius:8px;background:var(--card)}
-.map-data-notice {position:absolute;top:14px;left:14px;max-width:50%;background:var(--card);color:var(--muted-foreground);padding:8px 12px;border-radius:8px;font-size:12px}
-.map-frame .explorer-footer {right:190px}
-.map-frame .region-atlas:fullscreen {height:100dvh}
-@media(max-width:720px){.map-frame {--map-height:320px}}
 
 /* Offline cards retain every section and dim the complete surface. */
 .node-card.node-offline,.ma-node[data-state=offline] {opacity:.62;filter:saturate(.25) brightness(.94)}

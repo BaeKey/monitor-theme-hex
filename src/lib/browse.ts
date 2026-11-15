@@ -1,28 +1,23 @@
 import {liveMetrics, nodeState} from './freshness.ts'
-import {resolveProbe} from './nodeProbes.ts'
 import { regionKey } from './groups.ts'
 import type { Node } from './api.ts'
-import { getPing, summarizePing, selectPing } from './ping.ts'
-import { isRecentPingSample } from './pingRecency.ts'
 import { trafficUsed } from './traffic.ts'
 import { locale } from './i18n.ts'
-export const sortLabels = { default: '后台默认', name: '名称', status: '在线状态', cpu: 'CPU', memory: '内存', disk: '硬盘', upload: '上传速度', download: '下载速度', traffic: '流量用量 / 总额度', latency: '所选线路延迟', loss: '24h 丢包', expiry: '到期时间' }
-export const tableColumnLabels:Record<string,string>={cpu:'CPU',memory:'内存',disk:'硬盘',upload:'上传速度',download:'下载速度',latency:'延迟',loss:'丢包率',probe:'探测线路',traffic:'流量用量 / 总额度',expiry:'到期时间',connections:'TCP／UDP 连接数',uptime:'在线时长',system:'系统信息',country:'地区',billing:'费用与账期',todayTraffic:'今日流量',load:'系统负载',swap:'Swap 使用率',processes:'进程数',lastSeen:'最近上报时间'}
+export const sortLabels = { default: '后台默认', name: '名称', status: '在线状态', cpu: 'CPU', memory: '内存', disk: '硬盘', upload: '上传速度', download: '下载速度', traffic: '流量用量 / 总额度', expiry: '到期时间' }
+export const tableColumnLabels:Record<string,string>={cpu:'CPU',memory:'内存',disk:'硬盘',upload:'上传速度',download:'下载速度',traffic:'流量用量 / 总额度',expiry:'到期时间',connections:'TCP／UDP 连接数',uptime:'在线时长',system:'系统信息',country:'地区',billing:'费用与账期',todayTraffic:'今日流量',load:'系统负载',swap:'Swap 使用率',processes:'进程数',lastSeen:'最近上报时间'}
 export const availableTableColumns=Object.keys(tableColumnLabels)
 export type SortKey = keyof typeof sortLabels
-export type Browse = { query: string; status: string; region: string; sort: SortKey; direction: 'asc' | 'desc'; view: 'cards' | 'table'; probe: string; columns: string[]; mobileColumns: string[]; columnsVersion: number; tableLayout: 'grouped'|'separate'; mobileTableLayout: 'grouped'|'separate' }
-export const defaultBrowse: Browse = { query: '', status: 'all', region: 'all', sort: 'default', direction: 'asc', view: 'cards', probe: 'auto', columnsVersion: 5, tableLayout:'grouped', mobileTableLayout:'grouped', mobileColumns: ['cpu','latency'], columns: ['cpu', 'memory', 'disk', 'upload', 'download', 'traffic', 'latency', 'loss', 'probe', 'expiry'] }
+export type Browse = { query: string; status: string; region: string; sort: SortKey; direction: 'asc' | 'desc'; view: 'cards' | 'table'; columns: string[]; mobileColumns: string[]; columnsVersion: number; tableLayout: 'grouped'|'separate'; mobileTableLayout: 'grouped'|'separate' }
+export const defaultBrowse: Browse = { query: '', status: 'all', region: 'all', sort: 'default', direction: 'asc', view: 'cards', columnsVersion: 5, tableLayout:'grouped', mobileTableLayout:'grouped', mobileColumns: ['cpu','memory'], columns: ['cpu', 'memory', 'disk', 'upload', 'download', 'traffic', 'expiry'] }
 export function normalizeBrowse(input:unknown): Browse {
   const v=input && typeof input==='object' && !Array.isArray(input)?input as Record<string,unknown>:{}
-  const columns=(value:unknown,fallback:string[],mobile=false)=>{
+  const columns=(value:unknown,fallback:string[])=>{
     if(!Array.isArray(value))return fallback
     const selected=[...value]
-    const oldCompact=mobile&&selected.length===2&&selected.includes('cpu')&&selected.includes('latency')
-    if(Number(v.columnsVersion)<5 || v.columnsVersion===undefined){if(selected.includes('latency')&&!oldCompact)selected.push('loss','probe')}
     return availableTableColumns.filter(c=>selected.includes(c))
   }
   const layout=(key:string,field:string)=>v[key]==='grouped'||v[key]==='separate'?v[key]:Array.isArray(v[field])?'separate':'grouped'
-  return {...defaultBrowse,query:typeof v.query==='string'?v.query:'',status:['all','online','offline','pending'].includes(String(v.status))?v.status as string:'all',region:typeof v.region==='string'?v.region:'all',sort:Object.hasOwn(sortLabels,String(v.sort))?v.sort as SortKey:'default',direction:v.direction==='desc'?'desc':'asc',view:v.view==='table'?'table':'cards',probe:typeof v.probe==='string'?v.probe:'auto',columns:Array.isArray(v.columns)&&![2,3,4,5].includes(Number(v.columnsVersion))?columns([...(v.columns as unknown[]),'traffic'],defaultBrowse.columns):columns(v.columns,defaultBrowse.columns),mobileColumns:columns(v.mobileColumns,defaultBrowse.mobileColumns,true),tableLayout:layout('tableLayout','columns'),mobileTableLayout:layout('mobileTableLayout','mobileColumns')}
+  return {...defaultBrowse,query:typeof v.query==='string'?v.query:'',status:['all','online','offline','pending'].includes(String(v.status))?v.status as string:'all',region:typeof v.region==='string'?v.region:'all',sort:Object.hasOwn(sortLabels,String(v.sort))?v.sort as SortKey:'default',direction:v.direction==='desc'?'desc':'asc',view:v.view==='table'?'table':'cards',columns:Array.isArray(v.columns)&&![2,3,4,5].includes(Number(v.columnsVersion))?columns([...(v.columns as unknown[]),'traffic'],defaultBrowse.columns):columns(v.columns,defaultBrowse.columns),mobileColumns:columns(v.mobileColumns,defaultBrowse.mobileColumns),tableLayout:layout('tableLayout','columns'),mobileTableLayout:layout('mobileTableLayout','mobileColumns')}
 }
 export function readBrowse(): Browse {
   try {
@@ -41,23 +36,17 @@ export function tableColumns(columns:string[],grouped:boolean,mobile:boolean):st
   return keys.flatMap(key=>key==='upload'||key==='download'?(speed?[]:(speed=true,['speed'])):[key]).sort((a,b)=>['name','status','cpu','memory','disk','speed',...availableTableColumns.filter(k=>!['cpu','memory','disk'].includes(k))].indexOf(a)-['name','status','cpu','memory','disk','speed',...availableTableColumns.filter(k=>!['cpu','memory','disk'].includes(k))].indexOf(b))
 }
 export function tablePreset(preset:'overview'|'network'|'billing',mobile:boolean):Partial<Browse> {
-  const columns=preset==='network'?['upload','download','latency']:preset==='billing'?['traffic','expiry']:mobile?defaultBrowse.mobileColumns:defaultBrowse.columns
+  const columns=preset==='network'?['upload','download']:preset==='billing'?['traffic','expiry']:mobile?defaultBrowse.mobileColumns:defaultBrowse.columns
   return mobile?{mobileColumns:[...columns],mobileTableLayout:'grouped'}:{columns:[...columns],tableLayout:'grouped'}
 }
 const regionNames = new Intl.DisplayNames(['zh-CN'], { type: 'region' })
 const englishRegions = new Intl.DisplayNames(['en'], { type: 'region' })
 function englishRegion(code: string) { try { return englishRegions.of(code.toUpperCase()) || code } catch { return code } }
 export function regionName(code: string) { try { return regionNames.of(code.toUpperCase()) || code } catch { return code } }
-export function primaryPing(id: number, probe: string) {
-  probe = resolveProbe(id, probe)
-  const snapshot = getPing(id)
-  if (!snapshot?.data) return undefined
-  const stats = summarizePing(snapshot.data)
-  return selectPing(stats, probe)
-}
-export function sortValue(n: Node, key: SortKey, probe: string): number | string | null {
+export function sortValue(n: Node, key: SortKey): number | string | null {
   const m = liveMetrics(n)
   switch (key) {
+    case 'default': return n.sort
     case 'name': return n.name
     case 'status': return n.online ? 1 : 0
     case 'cpu': return m?.cpu ?? null
@@ -67,12 +56,7 @@ export function sortValue(n: Node, key: SortKey, probe: string): number | string
     case 'download': return m?.net_rx ?? null
     case 'traffic': return trafficUsed(n)
     case 'expiry': { const date = n.expires_at ? Date.parse(n.expires_at) : NaN; return Number.isFinite(date) ? date : null }
-    case 'latency':
-    case 'loss': {
-      const snapshot = getPing(n.id), ping = primaryPing(n.id, probe)
-      return !snapshot?.failed && snapshot?.updatedAt && Date.now() - snapshot.updatedAt < 120000 && ping && isRecentPingSample(ping.latest.ts) ? key==='loss'?ping.loss:ping.latest.latency : null
-    }
-    default: return n.sort
+
   }
 }
 export function matchesStatus(node: Node, status: string): boolean {
@@ -85,7 +69,7 @@ export function matchesStatus(node: Node, status: string): boolean {
 }
 export function browseNodes(nodes: Node[], options: Browse): Node[] {
   const q = options.query.trim().toLocaleLowerCase()
-  const keys = new Map(nodes.map(n=>[n.id,sortValue(n,options.sort,options.probe)]))
+  const keys = new Map(nodes.map(n=>[n.id,sortValue(n,options.sort)]))
   return nodes.filter(n => matchesStatus(n, options.status) && (options.region === 'all' || regionKey(n.country) === options.region) && [n.name, n.country, regionName(n.country), englishRegion(n.country), n.os, n.arch].join(' ').toLocaleLowerCase().includes(q)).sort((a, b) => {
     const fallback = a.sort - b.sort || a.id - b.id
     if (options.sort === 'default') return fallback

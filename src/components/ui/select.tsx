@@ -7,7 +7,7 @@ type Props=Omit<ComponentProps<'button'>,'value'|'onChange'|'children'|'defaultV
 type Option={value:string;label:ReactNode;disabled:boolean}
 function optionsOf(children:ReactNode):Option[]{return Children.toArray(children).flatMap(child=>{if(!isValidElement<{value?:string|number;children?:ReactNode;disabled?:boolean}>(child))return [];return child.type==='option'?[{value:String(child.props.value??''),label:child.props.children,disabled:!!child.props.disabled}]:optionsOf(child.props.children)})}
 const empty='__select_placeholder__'
-function SheetSelect({value='',onChange,children,displayValue,className,searchLabel=tr('搜索线路'),emptyText=tr('无该线路记录'),sheetHint=tr('节点独立选择优先于全局线路；其余线路可在详情查看。'),...props}:Omit<Props,'sheet'>){
+function SheetSelect({value='',onChange,children,displayValue,className,searchLabel=tr('搜索线路'),emptyText=tr('无该线路记录'),sheetHint=null,...props}:Omit<Props,'sheet'>){
  const [open,setOpen]=useState(false),[query,setQuery]=useState(''),dialogId=useId()
  const options=optionsOf(children),current=String(value),selected=options.find(o=>o.value===current)
  const text=(value:ReactNode):string=>typeof value==='string'||typeof value==='number'?String(value):Array.isArray(value)?value.map(text).join(' '):isValidElement<{children?:ReactNode}>(value)?text(value.props.children):''

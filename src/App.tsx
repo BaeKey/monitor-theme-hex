@@ -1,13 +1,7 @@
-import {nextAbnormalRegion,summarizeMapRegions} from '@/lib/mapLayers'
-import type {MapLayer} from '@/lib/worldMapModel'
-import {matchesMapStatus,type MapStatusFilter,type MapFocusRequest} from '@/lib/mapInteractions'
-import {useMapProbeQuality} from '@/lib/useMapProbeQuality'
-import mapPoints from '@/data/map-flat-points.json'
-import {regionKey} from '@/lib/groups'
-import {mapTrafficSnapshot} from '@/lib/mapTraffic'
+import {cardInfoFor, visibleInfoColumns} from "./lib/infoVisibility"
+import { withBase, stripBase } from './lib/base.ts'
 import {BillingReminders} from './components/BillingReminders';
 import {HexMark} from './components/HexMark';
-import {MapPanel} from './components/MapPanel';
 import {MobileApp} from './components/MobileApp';
 import {useMobilePreferences} from './lib/mobilePreferences';
 import {MobileSearch} from './components/MobileSearch';
@@ -16,17 +10,15 @@ import {RegionPicker} from './components/RegionPicker';
 import themeManifest from '../theme.json';
 import {useLoadAlerts} from './lib/useLoadAlerts';
 import {DesktopRegionFilter} from './components/DesktopRegionFilter';
-import {probeRevision,subscribeProbes,resolveProbe} from './lib/nodeProbes';
 import { tr, locale, getLanguage, subscribeLanguage, setLanguage } from './lib/i18n.ts'
 import { readCollection } from '@/lib/collection';
 import { systemKey } from '@/lib/groups';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState, useRef, useLayoutEffect, useSyncExternalStore } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState, useRef, useLayoutEffect, useSyncExternalStore } from "react";
 import {  Moon, Sun, Wrench, LogIn, Globe, LayoutGrid, ArrowLeft, Radio, Table2, Search, X, ArrowUp } from "lucide-react";
 import { usePreferences, useAppearance, useDesktopPreferences } from '@/lib/preferences';
 import { type Preferences as ThemePreferences, defaults } from '@/lib/appearance';
 import { Background, useBackground } from '@/components/Background';
 import { readBrowse, browseNodes, defaultBrowse, type Browse, type SortKey } from '@/lib/browse';
-import { getPing, watchPing, pingRevision, subscribePing } from '@/lib/ping';
 import { NodeTable } from '@/components/NodeTable';
 import { NodeCard } from "@/components/NodeCard";
 import { Summary } from "@/components/Summary";
@@ -54,7 +46,7 @@ const NodeDetail = lazy(loadDetail);
 // leaves the detail view rather than the site. The hub serves index.html for any
 // unknown path, so no server-side route is required.
 function useNodeRoute() {
-    const read = () => {const match=location.pathname.match(/^\/node\/(\d+)/);return match?Number(match[1]):null;};
+    const read = () => {const match=stripBase(location.pathname).match(/^\/node\/(\d+)(?:\/|$)/);return match?Number(match[1]):null;};
     const [id,setId]=useState(read);
     const [page,setPage]=useState<HomePage>(()=>read()===null?homePage():readReturnContext(history.state)?.page??'nodes');
     const home=useRef({y:readReturnContext(history.state)?.scrollY??0,node:0,offset:0,width:0,tableX:0,tableOffset:0,tableY:0,table:false});
@@ -106,7 +98,7 @@ function useNodeRoute() {
         const routeState=next!==null?(id===null?saveReturnContext({page,scrollY}):history.state??{}):{};
         const anchor=section ?? (id!==null && next!==null?location.hash.slice(1):'');
         pending.current=next===null;
-        history.pushState(routeState,'',next===null?homePath(destination):`/node/${next}${query}${anchor?'#'+anchor:''}`);
+        history.pushState(routeState,'',next===null?homePath(destination):withBase(`/node/${next}${query}${anchor?'#'+anchor:''}`));
         if(next===null)setPage(destination);
         setId(next);if(next!==null)scrollTo(0,0);
     };
@@ -146,7 +138,6 @@ export default function App({ siteDefaults = defaults }: {
     const [desktop,setDesktop]=useDesktopPreferences();
     const [mobilePreferences,setMobilePreferences]=useMobilePreferences();
     const loadAlerts=useLoadAlerts(nodes,prefs.modules.busiest);
-    useSyncExternalStore(subscribeProbes,probeRevision);
     const dark = useAppearance(prefs.appearance);
     const toggleTheme = () => setPrefs(prev => ({ ...prev, appearance: dark ? 'light' : 'dark' }));
     const background = useBackground(prefs);
@@ -154,7 +145,7 @@ export default function App({ siteDefaults = defaults }: {
     const [groupFilter, setGroupFilter] = useState('all');
     useEffect(() => { try { sessionStorage.setItem('monitor-next-collection-v1', JSON.stringify({ system })) } catch { /* Optional storage. */ } }, [system]);
     const [browseState, setBrowse] = useState<Browse>(() => {const old=readBrowse();return {...old,status:"all",query:"",sort:old.view === "table" ? old.sort : "default",direction:old.view === "table" ? old.direction : "asc"}});
-    const browse = useMemo(()=>({...browseState, probe:prefs.probe}),[browseState,prefs.probe]);
+    const browse = browseState;
     const [compactViewport, setCompactViewport] = useState(() => window.matchMedia('(max-width: 720px)').matches);
     useEffect(() => {
         const media = window.matchMedia('(max-width: 720px)');
@@ -171,22 +162,6 @@ export default function App({ siteDefaults = defaults }: {
         addEventListener('scroll', update, { passive: true });
         return () => removeEventListener('scroll', update);
     }, [open]);
-    const mapVisible = prefs.modules.map && !compactViewport;
-    const mapRoot=useRef<HTMLDivElement>(null);
-    const [mapLayer,setMapLayer]=useState<MapLayer>('nodes');
-    const [mapStatus,setMapStatus]=useState<MapStatusFilter>('all'),[focusRequest,setFocusRequest]=useState<MapFocusRequest>();
-    const mapSnapshot=useMemo(()=>mapTrafficSnapshot(nodes??[]),[nodes]);
-    const mapNodeById=useMemo(()=>new Map(mapSnapshot.map(node=>[node.id,node])),[mapSnapshot]);
-    const mapQuality=useMapProbeQuality(mapSnapshot,mapRoot,prefs.probe,prefs.latencyWarn,prefs.latencyHigh,!!me&&nodes!==null&&mapVisible&&open===null&&!error,mapStatus==='probe'||mapLayer==='probe');
-    const mapSummaries=useMemo(()=>summarizeMapRegions(mapSnapshot,mapQuality),[mapSnapshot,mapQuality]);
-    const abnormalCount=mapSummaries.filter(r=>r.abnormal>0&&Object.hasOwn(mapPoints,r.code)).length;
-    const locateAbnormal=()=>{const code=nextAbnormalRegion(mapSummaries,browse.region,mapPoints);if(code){setMapStatus('probe');locateMap(code)}};
-    const locateMap=(code:string)=>{
-        setBrowse(previous=>({...previous,region:code}));
-        setFocusRequest(previous=>({code,sequence:(previous?.sequence??0)+1}));
-        requestAnimationFrame(()=>mapRoot.current?.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}));
-    };
-    const canLocate=(node:Node)=>mapVisible&&Object.hasOwn(mapPoints,regionKey(node.country));
     useEffect(()=>{
         if(open!==null)return;
         let stopped=false,idle:number|undefined;
@@ -194,25 +169,17 @@ export default function App({ siteDefaults = defaults }: {
         return()=>{stopped=true;clearTimeout(timer);if(idle!==undefined)cancelIdleCallback(idle)};
     },[open]);
     const { status, region } = browse;
-    const shownColumns=compactViewport?browse.mobileColumns:browse.columns;
+    const shownColumns=visibleInfoColumns(compactViewport?browse.mobileColumns:browse.columns,cardInfoFor(prefs,compactViewport),!!me?.authed);
     const patchBrowse = (patch: Partial<Browse>) => setBrowse(prev => ({ ...prev, ...patch }));
     const resetDesktopColumns=()=>{const next={columns:[...defaultBrowse.columns],tableLayout:defaultBrowse.tableLayout,columnsVersion:defaultBrowse.columnsVersion};patchBrowse(next);try{localStorage.setItem('monitor-next-table-columns-v1',JSON.stringify({...browse,...next}))}catch{/* Optional table preference. */}};
     const setQuery = (query: string) => patchBrowse({ query });
     const setStatus = (status: string) => patchBrowse({ status });
     const setRegion = useCallback((region:string)=>setBrowse(prev=>({...prev,region})),[]);
-    const pingVersion = useSyncExternalStore(subscribePing, pingRevision);
     useEffect(() => { try {
         sessionStorage.setItem('monitor-next-browse-v1', JSON.stringify(browse));
     }
     catch { /* Optional storage. */ } }, [browse]);
     const sortBy = (key: SortKey) => patchBrowse({ sort: key, direction: browse.sort === key && browse.direction === 'asc' ? 'desc' : 'asc' });
-    const nodeIds = (nodes || []).map(n => n.id).join(',');
-    useEffect(() => {
-        if (!['latency','loss'].includes(browse.sort) || open !== null)
-            return;
-        return watchPing(nodeIds.split(',').filter(Boolean).map(Number));
-    }, [browse.sort, nodeIds, open]);
-    void pingVersion;
     const meRequest=useRef<Promise<void>|null>(null);
     const loadMe = useCallback(() => {
         if(meRequest.current)return meRequest.current;
@@ -248,7 +215,7 @@ export default function App({ siteDefaults = defaults }: {
     }, [closed, loadMe]);
     useEffect(() => {
         if (me && !me.public_page && !me.authed)
-            location.assign('/admin/');
+            location.assign(withBase('/admin/'));
     }, [me]);
     const sorted = [...(nodes ?? [])].sort((a, b) => a.sort - b.sort || a.id - b.id);
     const nodeGroups = [...new Set(sorted.map(n => typeof n.group === 'string' ? n.group : '').filter(Boolean))];
@@ -259,16 +226,15 @@ export default function App({ siteDefaults = defaults }: {
       {nodeGroups.map(name => <option key={name} value={'='+name}>{name}</option>)}
       {hasUngrouped && <option value="none">{tr("未分组")}</option>}
     </Select> : null;
-    const mapKey=JSON.stringify(mapTrafficSnapshot(sorted));
     const selected = sorted.find((n) => n.id === open);
-    const filtered = browseNodes(sorted, browse.view === "cards" ? {...browse,sort:"default"} : browse).filter(n => (system === 'all' || systemKey(n.os) === system) && (group === 'all' || (n.group || '') === (group === 'none' ? '' : group.slice(1))) && matchesMapStatus(mapNodeById.get(n.id)!,mapVisible?mapStatus:'all',mapQuality.get(n.id)));
-    const activeConditionCount = [status !== 'all', !!browse.query, region !== 'all', system !== 'all', group !== 'all', mapVisible&&mapStatus!=='all'].filter(Boolean).length;
+    const filtered = browseNodes(sorted, browse.view === "cards" ? {...browse,sort:"default"} : browse).filter(n => (system === 'all' || systemKey(n.os) === system) && (group === 'all' || (n.group || '') === (group === 'none' ? '' : group.slice(1))));
+    const activeConditionCount = [status !== 'all', !!browse.query, region !== 'all', system !== 'all', group !== 'all'].filter(Boolean).length;
     const showFilterFeedback = activeConditionCount > 0;
-    const resetFilters = () => { setQuery(''); setStatus('all'); setRegion('all'); setSystem('all'); setGroupFilter('all'); setMapStatus('all'); };
+    const resetFilters = () => { setQuery(''); setStatus('all'); setRegion('all'); setSystem('all'); setGroupFilter('all'); };
     const systems = [...new Set(sorted.map(n=>systemKey(n.os)))];
     const showSystemFilters = systems.length > 1 || system !== 'all';
     const showActiveFilters = showFilterFeedback || !!browse.query || system !== 'all' || (status !== 'all' && !prefs.modules.online);
-    const pageKey=JSON.stringify([browse.query,browse.status,browse.region,browse.sort,browse.direction,browse.probe,system,group,mapStatus]);
+    const pageKey=JSON.stringify([browse.query,browse.status,browse.region,browse.sort,browse.direction,system,group]);
     const [tablePage,setTablePage]=useState({key:pageKey,page:1});
     const page=Math.min(tablePage.key===pageKey?tablePage.page:1,Math.max(1,Math.ceil(filtered.length/20)));
     const viewSwitch = <div className="view-toolbar"><div className="view-switch"><button className={browse.view === 'cards' ? 'active' : ''} onClick={() => patchBrowse({view:'cards'})} aria-label={tr("卡片视图")} aria-pressed={browse.view === 'cards'}><LayoutGrid size={17}/>{tr("卡片")}</button><button className={browse.view === 'table' ? 'active' : ''} onClick={() => patchBrowse({view:'table'})} aria-label={tr("表格视图")} aria-pressed={browse.view === 'table'}><Table2 size={17}/>{tr("表格")}</button></div></div>;
@@ -315,7 +281,7 @@ export default function App({ siteDefaults = defaults }: {
           {/* The panel is a separate app built into the hub, not part of this
             theme, so this is a navigation rather than a route. */}
           <Button variant="ghost" size="sm" asChild>
-            <a href="/admin/">
+            <a href={withBase("/admin/")}>
               {me.authed ? <Wrench /> : <LogIn />} {me.authed ? tr("进入后台") : tr("登录")}
             </a>
           </Button>
@@ -334,18 +300,17 @@ export default function App({ siteDefaults = defaults }: {
           <Button className="detail-back" variant="ghost" aria-label={tr("返回总览")} title={tr("返回总览")} onClick={()=>go(null)}><ArrowLeft/><span>{tr("返回总览")}</span></Button>
         </div>}
         {open !== null ? (!nodes ? (<Skeleton className="detail-loading" aria-label={tr("正在加载…")} aria-busy="true"/>) : selected ? (<Suspense fallback={<Skeleton className="detail-loading" aria-label={tr("正在加载…")} aria-busy="true"/>}>
-              <NodeDetail authed={me.authed} onBack={()=>go(null)} mobilePreferences={mobilePreferences} detailInfoMode={prefs.detailInfoMode} onDetailInfoMode={detailInfoMode=>selectDisplay({detailInfoMode})} key={selected.id} node={selected} probe={compactViewport?resolveProbe(selected.id,prefs.probe):prefs.probe} nodes={sorted} onSwitch={id=>{const q=new URLSearchParams(location.search);q.delete("eventStart");q.delete("eventEnd");q.delete("routes");go(id,location.hash.slice(1),q.size?"?"+q:"")}}/>
+              <NodeDetail prefs={prefs} authed={me.authed} onBack={()=>go(null)} mobilePreferences={mobilePreferences} detailInfoMode={prefs.detailInfoMode} onDetailInfoMode={detailInfoMode=>selectDisplay({detailInfoMode})} key={selected.id} node={selected} nodes={sorted} onSwitch={id=>{const q=new URLSearchParams(location.search);q.delete("eventStart");q.delete("eventEnd");q.delete("routes");go(id,location.hash.slice(1),q.size?"?"+q:"")}}/>
             </Suspense>) : (<p className="py-16 text-center text-sm text-muted-foreground">{tr("节点不存在或未公开。")}<button className="underline" onClick={() => go(null)}>{tr("返回列表")}</button>
-            </p>)) : compactViewport ? null : !nodes ? (<>{mapVisible&&<MapPanel layer={mapLayer} onLayer={setMapLayer} abnormalCount={abnormalCount} onAbnormal={locateAbnormal} onOpen={id=>go(id)} viewSwitch={viewSwitch} nodeSnapshot={mapKey} region={region} onRegion={setRegion} statusFilter={mapStatus} onStatusFilter={setMapStatus} focusRequest={focusRequest} quality={mapQuality} panelRef={mapRoot} onLocate={locateMap} pendingNodes/>}<div className="node-grid home-loading" aria-label={tr("正在加载节点")} aria-busy="true">
+            </p>)) : compactViewport ? null : !nodes ? (<><div className="node-grid home-loading" aria-label={tr("正在加载节点")} aria-busy="true">
             {[0, 1, 2].map((i) => (<div key={i} className="loading-card" aria-hidden="true"><Skeleton className="loading-title"/><div className="loading-metrics">{[0,1,2,3].map(n=><Skeleton key={n}/>)}</div><Skeleton className="loading-speed"/><Skeleton className="loading-route"/></div>))}
           </div></>) : (<>
             <section className="overview-heading"><div className="page-heading"><h1>{tr("服务器总览")}</h1><span className={`live-label connection-${connection}`} role="status" title={[{connecting:tr("正在连接"),realtime:tr("实时连接"),polling:tr("轮询更新"),disconnected:tr("连接中断 \u00B7 数据可能已过期")}[connection],lastUpdated ? new Date(lastUpdated).toLocaleString(locale()) : tr("等待首次数据")].join(" · ")}><Radio size={14}/><span>{{ connecting: tr("正在连接"), realtime: tr("实时连接"), polling: tr("轮询更新"), disconnected: tr("连接中断 \u00B7 数据可能已过期") }[connection]}</span></span></div>
-            <BillingReminders nodes={sorted} onOpen={id=>go(id)}/>
+            <BillingReminders info={prefs.cardInfo} nodes={sorted} onOpen={id=>go(id)}/>
             <p className="update-time">{lastUpdated ? tr("最后更新：{0}", new Date(lastUpdated).toLocaleString(locale())) : tr("等待首次数据")}</p></section>
-            <div className="home-overview-grid" data-map={mapVisible}>
+            <div className="home-overview-grid">
             <Summary status={status} onStatus={setStatus} nodes={sorted} prefs={prefs} loadAlerts={loadAlerts} onAlert={event=>go(event.nodeId,"",`?eventStart=${event.start}&eventEnd=${event.end??event.last}`)}/>
             <>{compactViewport&&<div className="mobile-node-toolbar"><div className="mobile-toolbar-main"><RegionPicker nodes={sorted} region={region} onChange={setRegion}/></div></div>}</>
-            {mapVisible && <MapPanel layer={mapLayer} onLayer={setMapLayer} abnormalCount={abnormalCount} onAbnormal={locateAbnormal} onOpen={id=>go(id)} viewSwitch={viewSwitch} nodeSnapshot={mapKey} region={region} onRegion={setRegion} statusFilter={mapStatus} onStatusFilter={setMapStatus} focusRequest={focusRequest} quality={mapQuality} panelRef={mapRoot} onLocate={locateMap}/>}
             </div>
 
             <div id="node-results" tabIndex={-1}><div className={compactViewport ? "mobile-results-toolbar" : "desktop-results-toolbar"}><div className="node-toolbar-primary">
@@ -366,7 +331,7 @@ export default function App({ siteDefaults = defaults }: {
 </div>
 </div>
             <div className="active-filters" hidden={!showActiveFilters}>
-{mapVisible&&mapStatus!=='all'&&<button aria-label={tr('清除地图状态筛选')} onClick={()=>setMapStatus('all')}>{tr('地图状态')} ×</button>}
+
 {status!=='all'&&<button aria-label={tr("清除状态筛选")} onClick={()=>setStatus('all')}>{tr(status==='offline'?"离线":status==='pending'?"待更新":"在线")} ×</button>}
 {region!=='all'&&<button aria-label={`${tr('清除地区筛选')}：${countryName(region)}`} onClick={()=>setRegion('all')}>{countryName(region)} ×</button>}
 {activeConditionCount>1&&<span className="filter-composition">{tr("同时满足已选条件")}</span>}
@@ -374,7 +339,7 @@ export default function App({ siteDefaults = defaults }: {
 {system !== 'all' && <button aria-label={tr("清除系统筛选")} onClick={()=>setSystem('all')}>{system} ×</button>}
 {browse.query && <button aria-label={tr("清除搜索筛选")} onClick={()=>setQuery('')}>{tr("搜索节点")}：{browse.query} ×</button>}
  {showFilterFeedback && <button className="clear-all-filters" onClick={resetFilters}>{tr("清除筛选")}</button>}
-</div></section></div>{browse.view === 'table' && ['latency','loss'].includes(browse.sort) && <p className="sort-note">{tr("延迟和丢包按所选线路比较；无效或旧数据排在末尾。已读取")}{sorted.filter(n => getPing(n.id)?.data).length}/{sorted.length}{tr("个节点。")}{tr("各节点所选线路可能不同，延迟比较请注意探测目标。")}</p>}{sorted.length === 0 ? (<div className="empty-state"><p>{tr("还没有节点")}</p>{me.authed ? <Button variant="outline" asChild><a href="/admin/">{tr("前往后台添加节点")}</a></Button> : <p>{tr("请联系管理员添加节点。")}</p>}</div>) : filtered.length === 0 ? (<div className="empty-state"><p>{tr("没有符合条件的节点")}</p><Button variant="outline" onClick={resetFilters}>{tr("清除筛选")}</Button></div>) : browse.view === "table" ? (<NodeTable authed={me.authed} page={page} onPageChange={page=>setTablePage({key:pageKey,page})} nodes={filtered} browse={{...browse,columns:shownColumns}} onSort={sortBy} onSortChange={(sort,direction)=>patchBrowse({sort,direction})} onResetColumns={resetDesktopColumns} mobile={compactViewport} warn={prefs.latencyWarn} high={prefs.latencyHigh} onLocate={n=>canLocate(n)?()=>locateMap(regionKey(n.country)):undefined} onOpen={id => go(id)}/>) : (<div className="node-grid" data-columns={prefs.desktopColumns}>{filtered.map(n=><NodeCard key={n.id} node={n} authed={me.authed} mobile={mobileCards} density={desktop.cardDensity} prefs={prefs} info={mobileCards && prefs.mobileInfoMode==='custom' ? prefs.mobileCardInfo || prefs.cardInfo : prefs.cardInfo} probe={prefs.probe} onOpen={()=>go(n.id)} onOpenRoutes={route=>go(n.id,"latency",`?routes=${route.kind==="all"?"all":route.id}`)}/>)}</div>)}</div>
+</div></section></div>{sorted.length === 0 ? (<div className="empty-state"><p>{tr("还没有节点")}</p>{me.authed ? <Button variant="outline" asChild><a href={withBase("/admin/")}>{tr("前往后台添加节点")}</a></Button> : <p>{tr("请联系管理员添加节点。")}</p>}</div>) : filtered.length === 0 ? (<div className="empty-state"><p>{tr("没有符合条件的节点")}</p><Button variant="outline" onClick={resetFilters}>{tr("清除筛选")}</Button></div>) : browse.view === "table" ? (<NodeTable showRemarks={cardInfoFor(prefs,compactViewport).remarks} authed={me.authed} page={page} onPageChange={page=>setTablePage({key:pageKey,page})} nodes={filtered} browse={{...browse,columns:shownColumns}} onSort={sortBy} onSortChange={(sort,direction)=>patchBrowse({sort,direction})} onResetColumns={resetDesktopColumns} mobile={compactViewport} onOpen={id => go(id)}/>) : (<div className="node-grid" data-columns={prefs.desktopColumns}>{filtered.map(n=><NodeCard key={n.id} node={n} authed={me.authed} mobile={mobileCards} density={desktop.cardDensity} prefs={prefs} info={mobileCards && prefs.mobileInfoMode==='custom' ? prefs.mobileCardInfo || prefs.cardInfo : prefs.cardInfo} onOpen={()=>go(n.id)}/>)}</div>)}</div>
           </>)}
       </main>
       {!compactViewport && open === null && showScrollTop && <button type="button" className="back-to-top" aria-label={tr("返回顶部")} title={tr("返回顶部")} onClick={() => window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })}><ArrowUp size={17}/></button>}

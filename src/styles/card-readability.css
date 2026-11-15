@@ -3,10 +3,8 @@
 .next-theme .node-card .route-matrix .latency-bars g { opacity: 1; }
 .next-theme .node-card .route-matrix .latency-bars rect { rx: 1px; }
 .next-theme .node-card .route-matrix .latency-baseline { opacity: .4; }
-.next-theme .node-card .card-billing :is(.billing-label,.billing-label small,.billing-allowance,.billing-remaining),
-.next-theme .node-card .node-connections span { font-size: 12px; }
-.next-theme .node-card .card-billing :is(.billing-used,.card-expiry b,.card-uptime b),
-.next-theme .node-card .node-connections b { font-size: 13px; font-weight: 600; }
+.next-theme .node-card .card-billing :is(.billing-label,.billing-label small,.billing-allowance,.billing-remaining),.next-theme .node-card .node-connections span { font-size: 12px; }
+.next-theme .node-card .card-billing :is(.billing-used,.card-expiry b,.card-uptime b),.next-theme .node-card .node-connections b { font-size: 13px; font-weight: 600; }
 .next-theme .node-card .card-billing > :not(:first-child)::before,
 .next-theme .node-card .node-connections > div + div::before { content: none; }
 .next-theme .node-card.compact-network-card .route-matrix .ping-loading-line,

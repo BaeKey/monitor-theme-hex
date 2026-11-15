@@ -1,3 +1,4 @@
+import { withBase } from './lib/base.ts'
 import {ErrorBoundary} from './components/ErrorBoundary'
 import { tr } from './lib/i18n.ts'
 import { StrictMode } from "react";
@@ -12,7 +13,7 @@ async function start() {
     let siteDefaults = defaults;
     const backendConfig = fetchSiteConfig();
     try {
-        const response = await fetch('/theme-config.json', { signal: AbortSignal.timeout(3000), cache: 'no-cache' });
+        const response = await fetch(withBase('/theme-config.json'), { signal: AbortSignal.timeout(3000), cache: 'no-cache' });
         if (response.ok)
             siteDefaults = parsePreferences(await response.text());
     }

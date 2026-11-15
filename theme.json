@@ -2,9 +2,9 @@
   "name": "HEX",
   "short": "hex",
   "description": "HEX，让服务器状态一目了然。",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "author": "8bitNull",
-  "url": "https://github.com/8bitNull/monitor-theme-hex",
+  "url": "https://github.com/BaeKey/monitor-theme-hex",
   "config": [
     { "type": "title", "label": "外观与布局" },
     { "key": "palette", "type": "select", "label": "主题配色", "default": "default", "options": [
@@ -74,21 +74,7 @@
     { "key": "module_speed", "type": "boolean", "label": "实时网速", "default": true },
     { "key": "module_regions", "type": "boolean", "label": "地区统计", "default": false },
     { "key": "module_clock", "type": "boolean", "label": "当前时间", "default": false },
-    { "key": "module_map", "type": "boolean", "label": "首页地图", "default": true },
 
-    { "type": "title", "label": "网络与延迟" },
-    { "key": "homeRoutes", "type": "number", "label": "首页线路数量", "default": 1, "min": 1, "max": 3 },
-    { "key": "probe", "type": "string", "label": "主要探测线路 ID", "default": "auto", "help": "填 auto 使用各节点首条线路，或填写探测线路的数字 ID" },
-    { "key": "latencyScale", "type": "select", "label": "延迟统一刻度", "default": "500", "options": [
-      { "value": "200", "label": "0–200 ms" },
-      { "value": "500", "label": "0–500 ms" }
-    ] },
-    { "key": "latencyWindow", "type": "select", "label": "首页延迟窗口", "default": "1", "options": [
-      { "value": "1", "label": "最近 1 小时" },
-      { "value": "6", "label": "最近 6 小时" },
-      { "value": "24", "label": "最近 24 小时" }
-    ] },
-    { "key": "latencyWarn", "type": "number", "label": "延迟警告阈值（ms）", "default": 150, "min": 1, "max": 4999 },
-    { "key": "latencyHigh", "type": "number", "label": "延迟高阈值（ms）", "default": 300, "min": 2, "max": 5000 }
+    { "type": "title", "label": "网络与延迟" }
   ]
 }

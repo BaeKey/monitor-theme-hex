@@ -103,19 +103,8 @@
  .ma-attention-actions button,.ma-reminder-shortcuts button{padding-inline:8px}
 }
 @media(max-width:720px){
- .ma-update-dot{display:inline-block;width:6px;height:6px;flex-shrink:0;border-radius:50%;background:var(--primary);margin-left:5px}
+ .ma-sheet-actions a{display:flex;align-items:center;gap:6px;min-height:44px;font-size:13px}
  .ma-nav button>span{position:relative}
- .ma-nav .ma-update-dot{position:absolute;right:0;top:0}
- .ma-update-status{font-size:12px;color:var(--muted-foreground);padding:8px 0 12px}
- .ma-update-card{padding:14px 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
- .ma-update-card h3{margin:0 0 12px;font-size:15px}
- .ma-update-card p{display:flex;justify-content:space-between;gap:16px;font-size:13px;margin:8px 0}
- .ma-update-card p b{text-align:right;font-variant-numeric:tabular-nums;min-width:0}
- .ma-update-card small{display:block;color:var(--muted-foreground);font-size:12px;line-height:1.6}
- .ma-update-card a,.ma-sheet-actions a{display:flex;align-items:center;gap:6px;min-height:44px;font-size:13px}
- .ma-update-card summary{min-height:44px;padding:12px 0;cursor:pointer;font-size:13px}
- .ma-update-node{display:grid;gap:4px;padding:12px 0;border-top:1px solid var(--border);font-size:12px}
- .ma-update-node strong{font-size:13px}
  .ma-sheet-actions button:disabled{opacity:.55;cursor:wait}
  .ma-history-preference>div{min-width:0;overflow-wrap:anywhere}
  .ma-preference-help summary{min-height:44px;align-content:center;width:fit-content;min-width:44px;font-size:12px;color:var(--muted-foreground);cursor:pointer}

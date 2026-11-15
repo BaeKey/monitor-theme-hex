@@ -7,28 +7,19 @@ import {nodes} from '../scripts/fixtures.mjs'
 const manifest=JSON.parse(readFileSync(new URL('../theme.json',import.meta.url),'utf8')) as {config:Array<{key?:string;type:string;default?:unknown;options?:Array<{value:string}>}>}
 const packaged=JSON.parse(readFileSync(new URL('../public/theme-config.json',import.meta.url),'utf8'))
 
-test('backend route changes do not become personal overrides after reload',async({page})=>{
- let probe='2'
- await page.route('**/api/themes/hex/config',r=>r.fulfill({json:{probe}}))
- await page.goto('/')
- await expect.poll(()=>page.evaluate(()=>JSON.parse(sessionStorage.getItem('monitor-next-browse-v1')||'{}').probe)).toBe('2')
- probe='5'
- await page.reload()
- await expect.poll(()=>page.evaluate(()=>JSON.parse(sessionStorage.getItem('monitor-next-browse-v1')||'{}').probe)).toBe('5')
- await page.reload()
- await expect.poll(()=>page.evaluate(()=>JSON.parse(sessionStorage.getItem('monitor-next-browse-v1')||'{}').probe)).toBe('5')
-})
-
-test('legacy copied route preference yields to backend without losing other preferences',async({page})=>{
+test('retired global routes and map settings are ignored without losing appearance',async({page})=>{
  await page.addInitScript(()=>{
-  localStorage.setItem('monitor-next',JSON.stringify({_storageVersion:1,probe:'2',appearance:'dark',detailInfoMode:'expanded'}))
+  localStorage.setItem('monitor-next',JSON.stringify({_storageVersion:1,probe:'2',appearance:'dark'}))
   localStorage.setItem('monitor-next-node-probes-v1',JSON.stringify({'1':'4'}))
  })
- await page.route('**/api/themes/hex/config',r=>r.fulfill({json:{probe:'5'}}))
+ await page.route('**/api/themes/hex/config',r=>r.fulfill({json:{probe:'5',module_map:true,homeRoutes:3}}))
  await page.goto('/')
- await expect.poll(()=>page.evaluate(()=>JSON.parse(sessionStorage.getItem('monitor-next-browse-v1')||'{}').probe)).toBe('5')
+ await expect(page.locator('.node-card').first()).toBeVisible()
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(sessionStorage.getItem('monitor-next-browse-v1')||'{}').probe)).toBeUndefined()
  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('monitor-next')||'{}').appearance)).toBe('dark')
- expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('monitor-next-node-probes-v1')||'{}')['1'])).toBe('4')
+ await expect(page.locator('.map-frame,.route-matrix')).toHaveCount(0)
+ await page.reload()
+ await expect(page.locator('.map-frame,.route-matrix')).toHaveCount(0)
 })
 
 test('every backend theme field matches packaged defaults and reaches preferences',()=>{
@@ -75,12 +66,12 @@ test('recommended packaged display works on desktop and mobile',async({page})=>{
   await expect(page.locator('.next-theme')).toHaveAttribute('data-layout','comfortable')
   await expect(page.locator('.next-theme')).toHaveAttribute('data-graph','bar')
   await expect(page.locator('.node-grid')).toHaveAttribute('data-columns','auto')
-  await expect(page.locator('.map-frame')).toBeVisible()
+  await expect(page.locator('.map-frame')).toHaveCount(0)
   await expect(page.locator('.summary-grid > div')).toHaveCount(4)
   await expect(page.locator('.node-card').first().locator('.card-billing')).toBeVisible()
   await expect(page.locator('.node-card').first().locator('.node-remarks')).toBeVisible()
   await page.locator('.node-card').first().scrollIntoViewIfNeeded()
-  await expect(page.locator('.latency-bars svg').first()).toHaveAttribute('aria-label',/0–500 ms.*150.*300/)
+  await expect(page.locator('.latency-bars')).toHaveCount(0)
   await page.screenshot({path:'tests/artifacts/site-default-desktop.png'})
   await page.setViewportSize({width:390,height:844})
   await page.reload()

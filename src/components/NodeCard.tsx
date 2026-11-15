@@ -1,5 +1,4 @@
 import {useId,useState} from 'react'
-import type {OpenRoutes} from '@/lib/routeSelection'
 import {liveMetrics,nodeState} from '@/lib/freshness'
 import {SpeedIndicators} from './SpeedIndicators'
 import {ResourceMetric} from './ResourceMetric'
@@ -9,16 +8,13 @@ import { Clock3, Server, ArrowDownUp, CalendarDays } from 'lucide-react';
 import type { Node } from '@/lib/api';
 import type { Preferences, CardInfo } from '@/lib/appearance';
 import { Flag, OsIcon } from './NodeIcons';
-import { PingStats } from '@/components/PingStats';
 import { RemarkTags } from './RemarkTags';
 import { bytes, daysUntil, FOREVER, osName, pair, percent, relativeTime, uptime, money, CYCLES } from '@/lib/format';
 import { trafficPeriodLabel, trafficUsage } from '@/lib/traffic';
-export function NodeCard({ node, authed, onOpen, onOpenRoutes, probe = 'auto', prefs, info = prefs.cardInfo, mobile = false, density='detailed' }: {
+export function NodeCard({ node, authed, onOpen, prefs, info = prefs.cardInfo, mobile = false, density='detailed' }: {
     node: Node;
     authed: boolean;
     onOpen: () => void;
-    onOpenRoutes: (route:OpenRoutes) => void;
-    probe?: string;
     prefs: Preferences;
     info?: CardInfo;
     mobile?: boolean;
@@ -77,7 +73,6 @@ export function NodeCard({ node, authed, onOpen, onOpenRoutes, probe = 'auto', p
       </div>
     </button>
       {mobile && billing && <div className="mobile-card-extra">{billing}</div>}
-      <PingStats showStaleRecord={mobile} scale={prefs.latencyScale} latencyWindow={prefs.latencyWindow} warn={prefs.latencyWarn} high={prefs.latencyHigh} count={prefs.homeRoutes} online={node.online} id={node.id} probe={probe} onOpenRoutes={onOpenRoutes}/>
       {mobile && secondary && <div className="mobile-card-extra">{secondary}</div>}
       {!mobile&&(density==='detailed'?hasSupplementary:hasSecondary)&&<section id={supplementaryId} className="node-supplementary" aria-label={tr('更多信息')}>{density==='detailed'&&billing}{secondary}</section>}
   </article>;
