@@ -53,7 +53,7 @@ test('four summary tiles form balanced rows at tablet widths',async({page})=>{
    const box=tile.getBoundingClientRect()
    return {top:box.top,left:box.left,width:box.width}
   }))
-  if(width<=800||width>1100){
+  if(width<1200){
    expect(layout[0].top).toBe(layout[1].top)
    expect(layout[2].top).toBe(layout[3].top)
    expect(layout[2].top).toBeGreaterThan(layout[0].top)
