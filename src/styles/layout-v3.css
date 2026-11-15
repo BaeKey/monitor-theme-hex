@@ -46,6 +46,46 @@ body { font-family: "HEX Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", 
   .next-theme .overview-panel-title::before { content: none; }
   .next-theme .home-overview-grid .summary-grid > div { padding: 9px 10px; min-height: 91px; border: 0; border-radius: 0; }
   .next-theme .home-overview-grid .summary-grid > div:hover { background: transparent; }
+
+  /* Without the map every enabled metric shares the full-width overview.
+     Equal bases and symmetric insets also keep a partial final row balanced. */
+  .next-theme .home-overview-grid .overview-summary .summary-grid {
+    --summary-columns: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    border: 0;
+    overflow: visible;
+  }
+  .next-theme .home-overview-grid .overview-summary .summary-grid > div {
+    flex: 1 0 calc((100% - (var(--summary-columns) - 1) * 16px) / var(--summary-columns));
+    min-width: 0;
+    padding: 12px;
+    border: 0;
+    border-radius: var(--radius-control);
+  }
+  .next-theme:not([data-glass=true]) .home-overview-grid .overview-summary .summary-grid > div {
+    background: var(--surface-inset);
+  }
+  .next-theme .home-overview-grid .summary-tile-heading,
+  .next-theme .home-overview-grid .load-alert-tile > div:first-child {
+    min-height: 28px;
+    height: auto;
+    align-items: center;
+  }
+  .next-theme .home-overview-grid .load-alert-tile > div:first-child {
+    display: flex;
+    flex-wrap: wrap;
+    padding-right: 0;
+  }
+  .next-theme .home-overview-grid .load-alert-tile .load-history-button {
+    position: static;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    margin-left: auto;
+  }
+
   .next-theme .home-overview-grid .summary-grid :is(.summary-total,.summary-time,.summary-node-count b,.text-xl) { font-size: 30px; font-weight: 600; line-height: 1.15; letter-spacing: -.9px; }
   .next-theme .home-overview-grid .summary-grid .summary-flow { font-size: 12px; font-weight: 400; }
   .next-theme .home-overview-grid .summary-grid .h-7 { height: 10px; margin-top: 0; }
@@ -203,4 +243,12 @@ body { font-family: "HEX Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", 
 
 @media (forced-colors: active) {
   .next-theme .node-card, .next-theme .mobile-app .ma-node { border-color: CanvasText; }
+}
+
+@media (min-width: 900px) {
+  .next-theme .home-overview-grid .overview-summary .summary-grid:has(> div:nth-child(5)) { --summary-columns: 3; }
+}
+@media (min-width: 1200px) {
+  .next-theme .home-overview-grid .overview-summary .summary-grid,
+  .next-theme .home-overview-grid .overview-summary .summary-grid:has(> div:nth-child(5)) { --summary-columns: 6; }
 }
